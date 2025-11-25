@@ -1,3 +1,4 @@
+
 // electron.js
 const { app, BrowserWindow, ipcMain, dialog, shell, Menu } = require('electron');
 const path = require('path');
@@ -322,7 +323,7 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 
-// --- IPC HANDLERS (GỘP TẤT CẢ TỪ MAIN.JS) ---
+// --- IPC HANDLERS ---
 
 ipcMain.handle('get-app-version', () => app.getVersion());
 ipcMain.handle('check-for-updates', () => autoUpdater.checkForUpdates());
@@ -332,6 +333,54 @@ ipcMain.handle('get-app-config', () => readConfig());
 ipcMain.handle('save-app-config', async (event, configToSave) => {
     try { writeConfig({ ...readConfig(), ...configToSave }); return { success: true }; } 
     catch (e) { return { success: false, error: e.message }; }
+});
+
+ipcMain.handle('scan-folder-for-excels', async () => {
+    const win = BrowserWindow.getFocusedWindow();
+    const result = await dialog.showOpenDialog(win, {
+        properties: ['openDirectory']
+    });
+
+    if (result.canceled || result.filePaths.length === 0) return { success: false, error: 'Canceled' };
+
+    const dirPath = result.filePaths[0];
+    try {
+        const entries = fs.readdirSync(dirPath);
+        const files = entries
+            .filter(entry => entry.endsWith('.xlsx') && !entry.startsWith('~$'))
+            .map(entry => {
+                const fullPath = path.join(dirPath, entry);
+                return {
+                    path: fullPath,
+                    name: entry,
+                    content: fs.readFileSync(fullPath)
+                };
+            });
+        return { success: true, files };
+    } catch (e) {
+        return { success: false, error: e.message };
+    }
+});
+
+ipcMain.handle('load-tracked-files', async () => {
+    const config = readConfig();
+    const paths = config.trackedFilePaths || [];
+    const files = [];
+    
+    for (const p of paths) {
+        try {
+            if (fs.existsSync(p)) {
+                files.push({
+                    path: p,
+                    name: path.basename(p),
+                    content: fs.readFileSync(p)
+                });
+            }
+        } catch (e) {
+            console.error(`Failed to load tracked file ${p}`, e);
+        }
+    }
+    return { success: true, files };
 });
 
 ipcMain.handle('save-file-dialog', async (event, { defaultPath, fileContent }) => {

@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import { TrackedFile, VideoJob } from '../types';
@@ -11,7 +12,8 @@ import {
   LoaderIcon, 
   ExternalLinkIcon, 
   ChartIcon,
-  CogIcon
+  CogIcon,
+  SearchIcon
 } from './Icons';
 
 const isElectron = navigator.userAgent.toLowerCase().includes('electron');
@@ -61,6 +63,47 @@ const Tracker: React.FC = () => {
             return [];
         }
     };
+
+    // --- Startup & Persistence ---
+    useEffect(() => {
+        if (!ipcRenderer) return;
+
+        // Load persisted files on startup
+        const loadPersisted = async () => {
+            setLoading(true);
+            try {
+                const res = await ipcRenderer.invoke('load-tracked-files');
+                if (res.success && res.files.length > 0) {
+                     const loadedFiles: TrackedFile[] = [];
+                     for (const f of res.files) {
+                        const rawJobs = parseExcel(f.content);
+                        const videoResult = await ipcRenderer.invoke('find-videos-for-jobs', { jobs: rawJobs, excelFilePath: f.path });
+                        loadedFiles.push({
+                            name: f.name,
+                            path: f.path,
+                            jobs: videoResult.success ? videoResult.jobs : rawJobs
+                        });
+                        ipcRenderer.send('start-watching-file', f.path);
+                     }
+                     setFiles(loadedFiles);
+                     if (loadedFiles.length > 0) setActiveFileIndex(0);
+                }
+            } finally {
+                setLoading(false);
+            }
+        };
+        
+        loadPersisted();
+    }, []);
+
+    // Save tracked files list to config whenever files list changes
+    useEffect(() => {
+        if (!ipcRenderer) return;
+        const paths = files.map(f => f.path).filter(p => !!p) as string[];
+        // We use a small timeout or just invoke, as saving config is cheap
+        ipcRenderer.invoke('save-app-config', { trackedFilePaths: paths });
+    }, [files.length, files.map(f=>f.path).join(',')]); // Trigger only when file list composition changes
+
 
     // --- IPC Listeners ---
     useEffect(() => {
@@ -118,6 +161,54 @@ const Tracker: React.FC = () => {
                 setActiveFileIndex(files.length); // Switch to first new file
             }
         }
+    };
+
+    const handleScanFolder = async () => {
+        if (!ipcRenderer) return;
+        setLoading(true);
+        const result = await ipcRenderer.invoke('scan-folder-for-excels');
+        setLoading(false);
+
+        if (result.success && result.files) {
+            const newFiles: TrackedFile[] = [];
+            let addedCount = 0;
+
+            for (const f of result.files) {
+                if (files.some(existing => existing.path === f.path)) continue;
+
+                const rawJobs = parseExcel(f.content);
+                const videoResult = await ipcRenderer.invoke('find-videos-for-jobs', { jobs: rawJobs, excelFilePath: f.path });
+                
+                newFiles.push({
+                    name: f.name,
+                    path: f.path,
+                    jobs: videoResult.success ? videoResult.jobs : rawJobs
+                });
+                ipcRenderer.send('start-watching-file', f.path);
+                addedCount++;
+            }
+
+            if (newFiles.length > 0) {
+                setFiles(prev => [...prev, ...newFiles]);
+                if (files.length === 0) setActiveFileIndex(0);
+                alert(`Đã thêm ${addedCount} file mới vào danh sách theo dõi.`);
+            } else {
+                alert('Không tìm thấy file mới nào trong thư mục này.');
+            }
+        }
+    };
+
+    const handleClearAll = () => {
+        if (!ipcRenderer) return;
+        if (!confirm('Bạn có chắc chắn muốn xóa toàn bộ danh sách file đang theo dõi? Hành động này không xóa file gốc.')) return;
+        
+        // Stop watching all
+        files.forEach(f => {
+            if (f.path) ipcRenderer.send('stop-watching-file', f.path);
+        });
+        
+        setFiles([]);
+        setActiveFileIndex(0);
     };
 
     const handleCloseFile = (index: number, e: React.MouseEvent) => {
@@ -262,26 +353,35 @@ const Tracker: React.FC = () => {
                     <button onClick={handleOpenFile} className="btn-primary px-4 py-2 rounded-lg font-bold flex items-center gap-2">
                         <FolderIcon className="w-5 h-5" /> Mở File Excel
                     </button>
+                    <button onClick={handleScanFolder} className="bg-purple-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-purple-700 flex items-center gap-2">
+                        <SearchIcon className="w-5 h-5" /> Quét Thư Mục
+                    </button>
+                     <button onClick={handleClearAll} className="bg-red-500 text-white px-4 py-2 rounded-lg font-bold hover:bg-red-600 flex items-center gap-2">
+                        <TrashIcon className="w-5 h-5" /> Xóa Tất Cả
+                    </button>
+                </div>
+                
+                 <div className="flex gap-2 items-center">
                     <button onClick={handleOpenToolFlow} className="bg-gray-700 text-white px-4 py-2 rounded-lg font-bold hover:bg-gray-600 flex items-center gap-2">
-                        <ExternalLinkIcon className="w-5 h-5"/> Mở ToolFlows
+                        <ExternalLinkIcon className="w-5 h-5"/> ToolFlows
                     </button>
                     <button onClick={() => ipcRenderer.invoke('set-tool-flow-path')} className="text-gray-500 hover:text-indigo-600 p-2"><CogIcon className="w-5 h-5"/></button>
                 </div>
-                
-                {activeFile && (
-                    <div className="flex gap-2 items-center">
-                        <button onClick={copyFolderPath} className="bg-indigo-100 text-indigo-700 px-3 py-2 rounded-lg font-bold text-sm hover:bg-indigo-200">
-                             Copy Path Thư Mục
-                        </button>
-                         <button onClick={handleRefresh} className="bg-blue-100 text-blue-700 px-3 py-2 rounded-lg font-bold text-sm hover:bg-blue-200 flex items-center gap-1">
-                            <RetryIcon className="w-4 h-4" /> Tải lại Video
-                        </button>
-                        <button onClick={handleRetryStuck} className="bg-orange-100 text-orange-700 px-3 py-2 rounded-lg font-bold text-sm hover:bg-orange-200">
-                            Reset Job Kẹt
-                        </button>
-                    </div>
-                )}
             </div>
+            
+             {activeFile && (
+                 <div className="glass-card p-3 rounded-lg flex justify-end gap-2 bg-indigo-50/30">
+                     <button onClick={copyFolderPath} className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded font-bold text-xs hover:bg-indigo-200">
+                          Copy Path
+                     </button>
+                      <button onClick={handleRefresh} className="bg-blue-100 text-blue-700 px-3 py-1 rounded font-bold text-xs hover:bg-blue-200 flex items-center gap-1">
+                         <RetryIcon className="w-3 h-3" /> Tải lại Video
+                     </button>
+                     <button onClick={handleRetryStuck} className="bg-orange-100 text-orange-700 px-3 py-1 rounded font-bold text-xs hover:bg-orange-200">
+                         Reset Job Kẹt
+                     </button>
+                 </div>
+             )}
 
             {/* Files Tabs */}
             {files.length > 0 && (
@@ -292,7 +392,7 @@ const Tracker: React.FC = () => {
                             onClick={() => setActiveFileIndex(idx)}
                             className={`tracker-tab group ${idx === activeFileIndex ? 'active' : ''}`}
                         >
-                            <span className="max-w-[150px] truncate">{f.name}</span>
+                            <span className="max-w-[150px] truncate" title={f.path}>{f.name}</span>
                             <span 
                                 onClick={(e) => handleCloseFile(idx, e)}
                                 className="tab-close-btn opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600"
@@ -416,9 +516,14 @@ const Tracker: React.FC = () => {
                     <FolderIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                     <h3 className="text-xl font-bold text-gray-500">Chưa mở file kịch bản nào</h3>
                     <p className="text-gray-400 mb-6">Mở file Excel (.xlsx) để bắt đầu theo dõi tiến độ sản xuất</p>
-                    <button onClick={handleOpenFile} className="btn-primary px-6 py-3 rounded-xl font-bold text-lg shadow-lg">
-                        Mở File Excel Ngay
-                    </button>
+                    <div className="flex justify-center gap-4">
+                        <button onClick={handleOpenFile} className="btn-primary px-6 py-3 rounded-xl font-bold text-lg shadow-lg flex items-center gap-2">
+                            <FolderIcon className="w-5 h-5"/> Mở File Excel
+                        </button>
+                         <button onClick={handleScanFolder} className="bg-purple-600 text-white px-6 py-3 rounded-xl font-bold text-lg shadow-lg hover:bg-purple-700 flex items-center gap-2">
+                            <SearchIcon className="w-5 h-5"/> Quét Thư Mục
+                        </button>
+                    </div>
                 </div>
             )}
 
