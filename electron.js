@@ -28,6 +28,20 @@ const userDataPath = app.getPath('userData');
 const configPath = path.join(userDataPath, 'app-config.json');
 const statsPath = path.join(userDataPath, 'stats.json');
 
+// --- Global Error Handler (Modified to ignore Updater SemVer errors) ---
+process.on('uncaughtException', (error) => {
+    console.error('Uncaught Exception:', error);
+    
+    // Nếu lỗi do phiên bản không hợp lệ (SemVer), chỉ log và bỏ qua, không hiện popup
+    if (error.message && error.message.includes('valid semver')) {
+        return;
+    }
+
+    if (mainWindow) {
+        dialog.showErrorBox('Lỗi Hệ Thống', error.stack || error.message);
+    }
+});
+
 // --- HÀM XỬ LÝ CONFIG ---
 function readConfig() {
   try {
@@ -295,7 +309,13 @@ function createWindow() {
 
   autoUpdater.on('update-not-available', () => mainWindow?.webContents.send('update-status', 'not-available'));
   
-  autoUpdater.on('error', (err) => mainWindow?.webContents.send('update-status', 'error', err.message));
+  autoUpdater.on('error', (err) => {
+      // Filter out non-critical errors or errors handled elsewhere
+      console.warn("Update error:", err.message);
+      if (!err.message.includes('valid semver')) {
+        mainWindow?.webContents.send('update-status', 'error', err.message);
+      }
+  });
   
   autoUpdater.on('download-progress', (progressObj) => {
     mainWindow?.webContents.send('download-progress', progressObj.percent);
@@ -306,7 +326,14 @@ function createWindow() {
       mainWindow?.webContents.send('update-status', 'downloaded');
   });
 
-  if (!isDev) autoUpdater.checkForUpdates();
+  // Try to check for updates, but catch errors to prevent app crash on startup
+  if (!isDev) {
+      try {
+        autoUpdater.checkForUpdates();
+      } catch (e) {
+        console.error("Failed to check for updates:", e);
+      }
+  }
 }
 
 app.whenReady().then(() => {
@@ -315,7 +342,17 @@ app.whenReady().then(() => {
     { label: 'File', submenu: [{ role: 'quit' }] },
     { label: 'View', submenu: [{ role: 'reload' }, { role: 'forceReload' }, { role: 'toggleDevTools' }, { role: 'togglefullscreen' }] },
     { label: 'Help', submenu: [
-        { label: 'Kiểm tra cập nhật...', click: () => { autoUpdater.checkForUpdates(); mainWindow?.webContents.send('update-status', 'checking'); }},
+        { 
+            label: 'Kiểm tra cập nhật...', 
+            click: () => { 
+                try {
+                    autoUpdater.checkForUpdates(); 
+                    mainWindow?.webContents.send('update-status', 'checking'); 
+                } catch(e) {
+                    console.error("Manual update check failed", e);
+                }
+            }
+        },
         { label: `Phiên bản ${app.getVersion()}`, enabled: false }
     ]}
   ];
@@ -344,9 +381,21 @@ app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) creat
 // --- IPC HANDLERS ---
 
 ipcMain.handle('get-app-version', () => app.getVersion());
-ipcMain.handle('check-for-updates', () => autoUpdater.checkForUpdates());
+ipcMain.handle('check-for-updates', () => {
+    try {
+        autoUpdater.checkForUpdates();
+    } catch (e) {
+        console.error("IPC update check failed", e);
+    }
+});
 // Handler để bắt đầu tải xuống khi người dùng đồng ý
-ipcMain.handle('start-download-update', () => autoUpdater.downloadUpdate());
+ipcMain.handle('start-download-update', () => {
+    try {
+        autoUpdater.downloadUpdate();
+    } catch(e) {
+        console.error("Download failed", e);
+    }
+});
 ipcMain.handle('quit-and-install', () => autoUpdater.quitAndInstall());
 
 ipcMain.handle('get-app-config', () => readConfig());
