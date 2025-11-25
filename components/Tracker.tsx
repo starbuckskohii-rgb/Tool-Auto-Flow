@@ -28,8 +28,12 @@ const Tracker: React.FC = () => {
     filesRef.current = files;
 
     // --- Helpers ---
-    const parseExcel = (buffer: ArrayBuffer): VideoJob[] => {
+    const parseExcel = (bufferInput: any): VideoJob[] => {
         try {
+            // Convert potential Node Buffer or raw object to Uint8Array for XLSX
+            const data = bufferInput.data || bufferInput;
+            const buffer = new Uint8Array(data);
+            
             const workbook = XLSX.read(buffer, { type: 'array' });
             const sheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[sheetName];
@@ -63,8 +67,7 @@ const Tracker: React.FC = () => {
         if (!ipcRenderer) return;
 
         const handleFileUpdate = (_: any, { path, content }: { path: string, content: any }) => {
-            const buffer = content.data || content; // Handle Node buffer serialization
-            const newJobs = parseExcel(buffer);
+            const newJobs = parseExcel(content);
             
             // Need to invoke finding videos to get the video paths merged in
             ipcRenderer.invoke('find-videos-for-jobs', { jobs: newJobs, excelFilePath: path })
@@ -97,7 +100,7 @@ const Tracker: React.FC = () => {
                 // Check if already open
                 if (files.some(existing => existing.path === f.path)) continue;
 
-                const rawJobs = parseExcel(f.content.data || f.content);
+                const rawJobs = parseExcel(f.content);
                 // Initial scan for videos
                 const videoResult = await ipcRenderer.invoke('find-videos-for-jobs', { jobs: rawJobs, excelFilePath: f.path });
                 
