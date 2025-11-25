@@ -4,23 +4,21 @@ import React, {
   useCallback,
   ChangeEvent,
   useEffect,
-  useRef,
 } from 'react';
 import { GoogleGenAI, Type, Schema } from '@google/genai';
 import * as XLSX from 'xlsx';
 import CryptoJS from 'crypto-js';
-import { ActiveTab, GeneratorTab, PromptItem, GeneratorInputs, VideoJob, JobStatus, TrackedFile, ApiKey, AppConfig, StatsData } from './types';
+import { ActiveTab, GeneratorTab, PromptItem, GeneratorInputs, ApiKey, AppConfig } from './types';
 import { ideaMatrix, criticalRules, cinematicQualityRule, religiousGuardrails, MARKETS } from './constants';
-import { LoaderIcon, CopyIcon, UploadIcon, VideoIcon, KeyIcon, TrashIcon, FolderIcon, ExternalLinkIcon, PlayIcon, CogIcon, RetryIcon, ChartIcon, ShieldIcon, LockIcon } from './components/Icons';
+import { LoaderIcon, KeyIcon, TrashIcon, CogIcon } from './components/Icons';
+import Tracker from './components/Tracker';
 
 const isElectron = navigator.userAgent.toLowerCase().includes('electron');
 const ipcRenderer = isElectron && (window as any).require ? (window as any).require('electron').ipcRenderer : null;
 
 const GENERATOR_MODEL = 'gemini-2.5-flash-preview-09-2025';
 
-// --- Components Reused from Old App ---
-// Activation, ApiKeyManager, StatsModal, AdminLoginModal, AlertModal are kept for app integrity
-// But we focus on the new Generator UI mostly.
+// --- Components Reused ---
 
 interface ActivationProps {
   machineId: string;
@@ -116,11 +114,6 @@ const App: React.FC = () => {
     const [feedback, setFeedback] = useState<{type: 'error'|'success', message: string}|null>(null);
     const [characterAnalysis, setCharacterAnalysis] = useState('');
 
-    // --- Tracker State ---
-    const [trackedFiles, setTrackedFiles] = useState<TrackedFile[]>([]);
-    const [activeTrackerFileIndex, setActiveTrackerFileIndex] = useState(0);
-    const fileDiscoveryRef = useRef<Set<string>>(new Set());
-
     // --- Constants ---
     const SECRET_KEY = 'your-super-secret-key-for-mv-prompt-generator-pro-2024';
 
@@ -128,7 +121,7 @@ const App: React.FC = () => {
     const encrypt = useCallback((text: string) => {
         if (!machineId) return '';
         return CryptoJS.AES.encrypt(text, CryptoJS.SHA256(machineId + SECRET_KEY).toString()).toString();
-    }, [machineId]);
+    }, [machineId, SECRET_KEY]);
 
     // --- Initialization ---
     useEffect(() => {
@@ -137,11 +130,9 @@ const App: React.FC = () => {
                 const mid = config.machineId || '';
                 setMachineId(mid);
                 
-                // Validate license
-                const isValid = config.licenseKey && config.licenseKey.split('.')[0] === mid; 
-                // Simplified validation for brevity, assuming standard HMAC check is done or simplified
-                // In production use proper validation from old code.
-                setIsActivated(!!config.licenseKey); 
+                // Validate license (Simplified logic to fix unused variable error)
+                const hasLicense = !!config.licenseKey;
+                setIsActivated(hasLicense); 
 
                 // Load Keys
                 if (config.apiKeysEncrypted) {
@@ -159,9 +150,9 @@ const App: React.FC = () => {
             setIsActivated(true);
             setConfigLoaded(true);
             // Mock key for dev
-            if(process.env.API_KEY) setApiKeys([{id: '1', name: 'Dev Key', value: process.env.API_KEY}]);
+            if(process.env.API_KEY) setApiKeys([{id: '1', name: 'Dev Key', value: process.env.API_KEY || ''}]);
         }
-    }, []);
+    }, [SECRET_KEY]);
 
     const saveConfig = (update: Partial<AppConfig>) => {
         if (isElectron && ipcRenderer) ipcRenderer.invoke('save-app-config', update);
@@ -197,17 +188,19 @@ const App: React.FC = () => {
             
             const result = await ai.models.generateContent({
                 model: GENERATOR_MODEL,
-                contents: {
-                    parts: [
-                        { text: prompt },
-                        {
-                            inlineData: {
-                                mimeType: inputs.characterImage.mimeType,
-                                data: inputs.characterImage.base64
+                contents: [
+                    {
+                        parts: [
+                            { text: prompt },
+                            {
+                                inlineData: {
+                                    mimeType: inputs.characterImage.mimeType,
+                                    data: inputs.characterImage.base64
+                                }
                             }
-                        }
-                    ]
-                }
+                        ]
+                    }
+                ]
             });
             
             const text = result.text || '';
@@ -251,7 +244,7 @@ const App: React.FC = () => {
 
             const result = await ai.models.generateContent({
                 model: GENERATOR_MODEL,
-                contents: basePrompt
+                contents: [{ role: 'user', parts: [{ text: basePrompt }] }]
             });
             setInputs(prev => ({ ...prev, detailedIdea: result.text || '' }));
         } catch (e: any) {
@@ -411,7 +404,10 @@ const App: React.FC = () => {
         if (isElectron && ipcRenderer) {
             const buffer = XLSX.write(workbook, { type: 'array', bookType: 'xlsx' });
             const result = await ipcRenderer.invoke('save-file-dialog', { defaultPath: fileName, fileContent: buffer });
-            if (result.success) setFeedback({ type: 'success', message: `Đã lưu file: ${result.filePath}` });
+            if (result.success) {
+                setFeedback({ type: 'success', message: `Đã lưu file: ${result.filePath}` });
+                // Optional: Auto switch to tracker if requested, for now just notify
+            }
         } else {
             XLSX.writeFile(workbook, fileName);
         }
@@ -430,7 +426,7 @@ const App: React.FC = () => {
                  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                      <div className="flex justify-between h-16 items-center">
                          <div className="flex items-center gap-4">
-                             <h1 className="text-2xl font-extrabold gradient-text">Prompt Generator Pro</h1>
+                             <h1 className="text-2xl font-extrabold gradient-text">Trọng - Tool Auto Flow</h1>
                              <div className="hidden md:flex space-x-1">
                                  <button onClick={() => setActiveTab('generator')} className={`px-4 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'generator' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-600 hover:bg-gray-100'}`}>Tạo Kịch Bản</button>
                                  <button onClick={() => setActiveTab('tracker')} className={`px-4 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'tracker' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-600 hover:bg-gray-100'}`}>Theo Dõi Sản Xuất</button>
@@ -588,11 +584,7 @@ const App: React.FC = () => {
                 )}
                 
                 {activeTab === 'tracker' && (
-                    <div className="glass-card p-8 rounded-2xl text-center">
-                        <h2 className="text-xl font-bold text-gray-600 mb-4">Trình Theo Dõi (Legacy)</h2>
-                        <p className="text-gray-500">Chức năng này hiện đang được bảo trì để tương thích với giao diện mới.</p>
-                        <p className="text-sm text-gray-400 mt-2">Vui lòng sử dụng file Excel đã tải về để quản lý video thủ công hoặc chờ bản cập nhật tiếp theo.</p>
-                    </div>
+                    <Tracker />
                 )}
              </main>
         </div>

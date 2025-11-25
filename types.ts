@@ -19,7 +19,7 @@ export interface GeneratorInputs {
     basicIdea: string;
     detailedIdea: string;
     style: string;
-    market: string; // New field for Target Market
+    market: string;
     duration: number;
     month: string;
     loopType: 'person' | 'nature';
@@ -32,7 +32,6 @@ export interface UploadedImage {
   mimeType: string;
 }
 
-// Keeping legacy types for compatibility if needed, though mostly replaced
 export interface VideoJob {
     id: string;
     prompt: string;
@@ -43,12 +42,12 @@ export interface VideoJob {
     videoName: string;
     typeVideo: string;
     videoPath?: string;
-  }
+}
   
 export interface TrackedFile {
   name: string;
   jobs: VideoJob[];
-  path?: string; // Path to the file on disk for watching
+  path?: string;
   targetDurationSeconds?: number;
 }
 
@@ -58,7 +57,6 @@ export interface ApiKey {
   value: string;
 }
 
-// App config types
 export interface AppConfig {
   machineId?: string;
   licenseKey?: string;

@@ -1,9 +1,15 @@
 {
-  "name": "prompt-generator-pro",
-  "version": "1.1.6",
-  "description": "An application to generate professional visual scripts for Music Videos and Live Shows by transforming ideas into detailed prompts for AI video models.",
-  "main": "main.js",
-  "homepage": "./",
+  "name": "tool-auto-flow",
+  "version": "1.0.1",
+  "description": "Tool kịch bản auto flow",
+  "main": "electron.js",
+  "author": "StarbucksKohii",
+  "license": "UNLICENSED",
+  "homepage": "https://github.com/starbuckskohii-rgb/Tool-Auto-Flow#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/starbuckskohii-rgb/Tool-Auto-Flow.git"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
@@ -11,16 +17,14 @@
     "start": "npm run build && electron .",
     "dist": "npm run build && electron-builder --publish always"
   },
-  "author": "Prompt Generator Pro",
-  "license": "UNLICENSED",
   "dependencies": {
-    "@google/genai": "^1.28.0",
+    "@google/genai": "^1.30.0",
+    "crypto-js": "^4.2.0",
+    "electron-log": "^5.1.5",
+    "electron-updater": "^6.1.8",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "crypto-js": "^4.2.0",
-    "xlsx": "^0.18.5",
-    "electron-updater": "^6.1.8",
-    "electron-log": "^5.1.5"
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/crypto-js": "^4.2.2",
@@ -33,35 +37,32 @@
     "vite": "^5.0.12"
   },
   "build": {
-    "appId": "com.promptgenerator.pro",
-    "productName": "Prompt Generator Pro",
+    "appId": "com.starbuckskohii.autoflow",
+    "productName": "Tool Auto Flow",
     "publish": [
       {
         "provider": "github",
-        "owner": "BeCuong18",
-        "repo": "App_video"
-      }
-    ],
-    "files": [
-      "dist/**/*",
-      "main.js"
-    ],
-    "extraResources": [
-      {
-        "from": "resources/ffmpeg",
-        "to": "ffmpeg"
+        "owner": "starbuckskohii-rgb",
+        "repo": "Tool-Auto-Flow"
       }
     ],
     "directories": {
       "output": "release"
     },
+    "files": [
+      "dist/**/*",
+      "electron.js",
+      "package.json"
+    ],
     "win": {
       "target": "nsis",
-      "icon": "assets/icon.ico"
+      "icon": "public/icon.ico"
     },
-    "mac": {
-      "target": "dmg",
-      "icon": "assets/icon.icns"
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "deleteAppDataOnUninstall": true
     }
   }
 }
