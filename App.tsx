@@ -1,4 +1,5 @@
 
+
 import React, {
   useState,
   useCallback,
@@ -10,7 +11,7 @@ import * as XLSX from 'xlsx';
 import CryptoJS from 'crypto-js';
 import { ActiveTab, GeneratorTab, PromptItem, GeneratorInputs, ApiKey, AppConfig } from './types';
 import { ideaMatrix, criticalRules, cinematicQualityRule, religiousGuardrails, MARKETS } from './constants';
-import { LoaderIcon, KeyIcon, TrashIcon, CogIcon, InfoIcon } from './components/Icons';
+import { LoaderIcon, KeyIcon, TrashIcon, CogIcon, InfoIcon, DownloadIcon, XCircleIcon } from './components/Icons';
 import Tracker from './components/Tracker';
 
 const isElectron = navigator.userAgent.toLowerCase().includes('electron');
@@ -97,6 +98,12 @@ const App: React.FC = () => {
     const [appVersion, setAppVersion] = useState('');
     const [updateStatus, setUpdateStatus] = useState<string>('');
     
+    // Update Logic States
+    const [updateAvailableModal, setUpdateAvailableModal] = useState<any>(null); // Stores update info
+    const [showProgressModal, setShowProgressModal] = useState(false);
+    const [downloadProgress, setDownloadProgress] = useState(0);
+    const [isDownloadingImmediate, setIsDownloadingImmediate] = useState(false);
+
     // --- Generator State ---
     const [genTab, setGenTab] = useState<GeneratorTab>('jesus');
     const [inputs, setInputs] = useState<GeneratorInputs>({
@@ -152,15 +159,40 @@ const App: React.FC = () => {
             ipcRenderer.invoke('get-app-version').then((v: string) => setAppVersion(v));
 
             // Listen for update status
-            const updateListener = (_: any, status: string) => {
+            const updateStatusListener = (_: any, status: string, errorMsg?: string) => {
                 setUpdateStatus(status);
-                if (status === 'available') alert('Có bản cập nhật mới! Đang tải về...');
                 if (status === 'not-available') alert('Bạn đang sử dụng phiên bản mới nhất.');
-                if (status === 'error') alert('Lỗi khi kiểm tra cập nhật.');
+                if (status === 'error' && errorMsg) alert('Lỗi kiểm tra cập nhật: ' + errorMsg);
             };
-            ipcRenderer.on('update-status', updateListener);
+
+            const updateAvailableListener = (_: any, info: any) => {
+                setUpdateAvailableModal(info);
+            };
+
+            const downloadProgressListener = (_: any, percent: number) => {
+                setDownloadProgress(Math.round(percent));
+            };
+
+            const updateDownloadedListener = () => {
+                if (isDownloadingImmediate) {
+                    // Automatically quit and install if user chose "Update Now"
+                    ipcRenderer.invoke('quit-and-install');
+                } else {
+                    // For silent update, just close the progress (if visible) or do nothing
+                    // It will install on next quit
+                }
+            };
+
+            ipcRenderer.on('update-status', updateStatusListener);
+            ipcRenderer.on('update-available-prompt', updateAvailableListener);
+            ipcRenderer.on('download-progress', downloadProgressListener);
+            ipcRenderer.on('update-downloaded', updateDownloadedListener);
+
             return () => {
-                ipcRenderer.removeListener('update-status', updateListener);
+                ipcRenderer.removeListener('update-status', updateStatusListener);
+                ipcRenderer.removeListener('update-available-prompt', updateAvailableListener);
+                ipcRenderer.removeListener('download-progress', downloadProgressListener);
+                ipcRenderer.removeListener('update-downloaded', updateDownloadedListener);
             };
 
         } else {
@@ -171,7 +203,7 @@ const App: React.FC = () => {
             // Mock key for dev
             if(process.env.API_KEY) setApiKeys([{id: '1', name: 'Dev Key', value: process.env.API_KEY || ''}]);
         }
-    }, [SECRET_KEY]);
+    }, [SECRET_KEY, isDownloadingImmediate]);
 
     const saveConfig = (update: Partial<AppConfig>) => {
         if (isElectron && ipcRenderer) ipcRenderer.invoke('save-app-config', update);
@@ -183,6 +215,25 @@ const App: React.FC = () => {
             ipcRenderer.invoke('check-for-updates');
         } else {
             alert('Chức năng này chỉ có trên phiên bản Desktop.');
+        }
+    };
+
+    // Update Action Handlers
+    const handleUpdateNow = () => {
+        if (isElectron && ipcRenderer) {
+            setIsDownloadingImmediate(true);
+            setUpdateAvailableModal(null);
+            setShowProgressModal(true);
+            ipcRenderer.invoke('start-download-update');
+        }
+    };
+
+    const handleUpdateLater = () => {
+        if (isElectron && ipcRenderer) {
+            setIsDownloadingImmediate(false);
+            setUpdateAvailableModal(null);
+            // Trigger download silently in background
+            ipcRenderer.invoke('start-download-update');
         }
     };
 
@@ -448,7 +499,54 @@ const App: React.FC = () => {
     if (!activeApiKey) return <ApiKeyManagerScreen apiKeys={apiKeys} onKeyAdd={(k) => { const newKeys=[...apiKeys, k]; setApiKeys(newKeys); saveConfig({ apiKeysEncrypted: encrypt(JSON.stringify(newKeys)) }); }} onKeyDelete={(id) => { const newKeys=apiKeys.filter(k=>k.id!==id); setApiKeys(newKeys); saveConfig({ apiKeysEncrypted: encrypt(JSON.stringify(newKeys)) }); }} onKeySelect={(k) => { setActiveApiKey(k); saveConfig({ activeApiKeyId: k.id }); }} />;
 
     return (
-        <div className="min-h-screen">
+        <div className="min-h-screen relative">
+            {/* Update Available Modal */}
+            {updateAvailableModal && (
+                <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 animate-fade-in-up">
+                        <div className="flex justify-between items-start mb-4">
+                            <h3 className="text-xl font-bold text-gray-900">Có bản cập nhật mới!</h3>
+                            <button onClick={handleUpdateLater} className="text-gray-400 hover:text-gray-600"><XCircleIcon className="w-6 h-6"/></button>
+                        </div>
+                        <p className="text-gray-600 mb-6">
+                            Phiên bản <span className="font-bold text-indigo-600">{updateAvailableModal.version}</span> đã sẵn sàng.
+                            Bạn có muốn tải về và cập nhật ngay bây giờ không?
+                        </p>
+                        <div className="flex gap-3">
+                            <button onClick={handleUpdateLater} className="flex-1 py-3 rounded-xl font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition">
+                                Để sau
+                            </button>
+                            <button onClick={handleUpdateNow} className="flex-1 py-3 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition flex items-center justify-center gap-2">
+                                <DownloadIcon className="w-5 h-5" /> Cập nhật ngay
+                            </button>
+                        </div>
+                        <p className="text-xs text-center text-gray-400 mt-4">Chọn "Để sau" sẽ tải ngầm và cập nhật khi bạn tắt ứng dụng.</p>
+                    </div>
+                </div>
+            )}
+
+            {/* Download Progress Modal */}
+            {showProgressModal && (
+                <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-8 text-center animate-fade-in-up">
+                         <div className="mb-4 text-indigo-600 flex justify-center">
+                            <LoaderIcon />
+                         </div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">Đang tải bản cập nhật...</h3>
+                        <p className="text-gray-500 mb-6 text-sm">Vui lòng không tắt ứng dụng.</p>
+                        
+                        <div className="w-full bg-gray-200 rounded-full h-4 mb-2 overflow-hidden">
+                            <div 
+                                className="bg-indigo-600 h-4 rounded-full transition-all duration-300 ease-out" 
+                                style={{ width: `${downloadProgress}%` }}
+                            ></div>
+                        </div>
+                        <p className="font-bold text-gray-700">{downloadProgress}%</p>
+                    </div>
+                </div>
+            )}
+
+
              {/* Header */}
              <header className="bg-white/50 backdrop-blur-lg border-b border-white/20 sticky top-0 z-50">
                  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

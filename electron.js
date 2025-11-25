@@ -1,4 +1,5 @@
 
+
 // electron.js
 const { app, BrowserWindow, ipcMain, dialog, shell, Menu } = require('electron');
 const path = require('path');
@@ -12,7 +13,9 @@ const { execFile, spawn } = require('child_process');
 // --- CẤU HÌNH LOG UPDATE ---
 autoUpdater.logger = log;
 autoUpdater.logger.transports.file.level = 'info';
-autoUpdater.autoDownload = true;
+// Tắt tự động download để người dùng chọn
+autoUpdater.autoDownload = false;
+autoUpdater.autoInstallOnAppQuit = true;
 
 // --- BIẾN TOÀN CỤC (WATCHER & STATS) ---
 const fileWatchers = new Map();
@@ -283,12 +286,27 @@ function createWindow() {
 
   // Updater Events
   autoUpdater.on('checking-for-update', () => mainWindow?.webContents.send('update-status', 'checking'));
-  autoUpdater.on('update-available', () => mainWindow?.webContents.send('update-status', 'available'));
-  autoUpdater.on('update-not-available', () => mainWindow?.webContents.send('update-status', 'not-available'));
-  autoUpdater.on('error', (err) => mainWindow?.webContents.send('update-status', 'error', err.message));
-  autoUpdater.on('update-downloaded', () => mainWindow?.webContents.send('update-status', 'downloaded'));
+  
+  // Khi có bản cập nhật, không tự tải mà gửi thông tin cho người dùng chọn
+  autoUpdater.on('update-available', (info) => {
+      mainWindow?.webContents.send('update-available-prompt', info);
+      mainWindow?.webContents.send('update-status', 'available');
+  });
 
-  if (!isDev) autoUpdater.checkForUpdatesAndNotify();
+  autoUpdater.on('update-not-available', () => mainWindow?.webContents.send('update-status', 'not-available'));
+  
+  autoUpdater.on('error', (err) => mainWindow?.webContents.send('update-status', 'error', err.message));
+  
+  autoUpdater.on('download-progress', (progressObj) => {
+    mainWindow?.webContents.send('download-progress', progressObj.percent);
+  });
+
+  autoUpdater.on('update-downloaded', () => {
+      mainWindow?.webContents.send('update-downloaded');
+      mainWindow?.webContents.send('update-status', 'downloaded');
+  });
+
+  if (!isDev) autoUpdater.checkForUpdates();
 }
 
 app.whenReady().then(() => {
@@ -297,7 +315,7 @@ app.whenReady().then(() => {
     { label: 'File', submenu: [{ role: 'quit' }] },
     { label: 'View', submenu: [{ role: 'reload' }, { role: 'forceReload' }, { role: 'toggleDevTools' }, { role: 'togglefullscreen' }] },
     { label: 'Help', submenu: [
-        { label: 'Kiểm tra cập nhật...', click: () => { autoUpdater.checkForUpdatesAndNotify(); mainWindow?.webContents.send('update-status', 'checking'); }},
+        { label: 'Kiểm tra cập nhật...', click: () => { autoUpdater.checkForUpdates(); mainWindow?.webContents.send('update-status', 'checking'); }},
         { label: `Phiên bản ${app.getVersion()}`, enabled: false }
     ]}
   ];
@@ -327,7 +345,9 @@ app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) creat
 
 ipcMain.handle('get-app-version', () => app.getVersion());
 ipcMain.handle('check-for-updates', () => autoUpdater.checkForUpdates());
-ipcMain.on('restart_app', () => autoUpdater.quitAndInstall());
+// Handler để bắt đầu tải xuống khi người dùng đồng ý
+ipcMain.handle('start-download-update', () => autoUpdater.downloadUpdate());
+ipcMain.handle('quit-and-install', () => autoUpdater.quitAndInstall());
 
 ipcMain.handle('get-app-config', () => readConfig());
 ipcMain.handle('save-app-config', async (event, configToSave) => {
