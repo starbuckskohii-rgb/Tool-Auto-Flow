@@ -1,0 +1,23 @@
+{
+  "name": "Prompt Generator Pro for MV & Live Show",
+  "short_name": "Prompt Gen Pro",
+  "description": "An application to generate professional visual scripts for Music Videos and Live Shows by transforming ideas into detailed prompts for AI video models.",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#4338ca",
+  "theme_color": "#14b8a6",
+  "icons": [
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iI2ZmZmZmZiI+PHBhdGggZD0iTTAgMGgyNHYyNEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0yMCA0SDRjLTEuMSAwLTEuOTkuOS0xLjk5IDJMMiAxOGMwIDEuMS45IDIgMiAyaDE2YzEuMSAwIDItLjkgMi0yVjZjMC0xLjEtLjktMi0yLTJ6bS01IDlsLTMuNSAyLjVMMTUgMTlsLTQtOCA1LjUgNEw4IDExbC0zLjUgMi41TDggNmw0LjUgOC01LjUtNEwxNiAxNHoiLz48L3N2Zz4=",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iI2ZmZmZmZiI+PHBhdGggZD0iTTAgMGgyNHYyNEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0yMCA0SDRjLTEuMSAwLTEuOTkuOS0xLjk5IDJMMiAxOGMwIDEuMS45IDIgMiAyaDE2YzEuMSAwIDItLjkgMi0yVjZjMC0xLjEtLjktMi0yLTJ6bS01IDlsLTMuNSAyLjVMMTUgMTlsLTQtOCA1LjUgNEw4IDExbC0zLjUgMi41TDggNmw0LjUgOC01LjUtNEwxNiAxNHoiLz48L3N2Zz4=",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

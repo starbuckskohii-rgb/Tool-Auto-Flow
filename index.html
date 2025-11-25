@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Prompt Generator Pro</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#4f46e5">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-start: #e0e7ff;
+            --bg-end: #c7d2fe;
+            --card-bg: rgba(255, 255, 255, 0.65);
+            --card-border: rgba(255, 255, 255, 0.3);
+            --text-primary: #1f2937;
+            --text-secondary: #4b5563;
+            --accent-start: #4f46e5;
+            --accent-end: #7c3aed;
+            --shadow-color: rgba(79, 70, 229, 0.15);
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-image: linear-gradient(135deg, var(--bg-start) 0%, var(--bg-end) 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+        .gradient-bg {
+            /* Fallback or override if needed, but body handles main bg */
+        }
+        .glassmorphism {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            box-shadow: 0 8px 32px 0 var(--shadow-color);
+        }
+        .glass-card {
+             /* Keeping compatibility with old classes but updating look */
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            box-shadow: 0 8px 32px 0 var(--shadow-color);
+        }
+        .btn-primary {
+            background-image: linear-gradient(to right, var(--accent-start) 0%, var(--accent-end) 100%);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px 0 rgba(79, 70, 229, 0.25);
+            color: white;
+        }
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px 0 rgba(79, 70, 229, 0.35);
+        }
+        .copy-btn {
+            transition: all 0.2s ease;
+        }
+        .copy-btn:active {
+            transform: scale(0.95);
+        }
+        .gradient-text {
+            background: linear-gradient(to right, var(--accent-start), var(--accent-end));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        /* Form Elements */
+        select {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%234f46e5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.7rem center;
+            background-size: 1.2em;
+            padding-right: 2.5rem;
+        }
+
+        /* Tracker Tab Styles Compatibility */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25em 0.6em;
+            font-size: 0.8em;
+            font-weight: 600;
+            border-radius: 9999px;
+            white-space: nowrap;
+        }
+        .status-pending { background-color: #9ca3af; color: #1f2937; }
+        .status-processing { background-color: #60a5fa; color: #1e3a8a; }
+        .status-generating { background-color: #fcd34d; color: #78350f; }
+        .status-completed { background-color: #34d399; color: #064e3b; }
+        .status-failed { background-color: #f87171; color: #7f1d1d; }
+
+        .job-table th {
+            text-align: left;
+            font-size: 0.8rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: #4b5563;
+            background-color: rgba(243, 244, 246, 0.8);
+            backdrop-filter: blur(5px);
+        }
+        .job-table td {
+            color: #1f2937;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        /* Tracker Tabs */
+        .tracker-tabs-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            border-bottom: 2px solid rgba(0, 0, 0, 0.1);
+            padding-bottom: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+        .tracker-tab {
+            position: relative;
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            border: 1px solid transparent;
+            border-radius: 0.5rem;
+            background-color: transparent;
+            color: #6b7280;
+            font-weight: 500;
+            transition: all 0.2s ease-in-out;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+        .tracker-tab:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+            color: #1f2937;
+        }
+        .tracker-tab.active {
+            color: #4f46e5;
+            font-weight: 600;
+            background-color: rgba(79, 70, 229, 0.1);
+            border-color: rgba(79, 70, 229, 0.3);
+        }
+        .tab-close-btn {
+            margin-left: 0.75rem;
+            padding: 0.25rem;
+            border-radius: 9999px;
+            line-height: 1;
+        }
+        .tab-close-btn:hover {
+            background-color: rgba(0, 0, 0, 0.1);
+        }
+        .tab-progress-frame {
+            position: absolute;
+            inset: 0;
+            border: 2px solid #4f46e5;
+            border-radius: inherit;
+            transition: clip-path 0.4s ease-in-out;
+            pointer-events: none;
+        }
+        
+        /* Sliders */
+        input[type=range] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 8px;
+            background: linear-gradient(to right, var(--accent-start), var(--accent-end));
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+            border-radius: 5px;
+        }
+        input[type=range]:hover { opacity: 1; }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border: 2px solid var(--accent-start);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        /* File Input Wrapper */
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            cursor: pointer;
+        }
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.28.0",
+    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.0",
+    "vite": "https://aistudiocdn.com/vite@^7.1.12",
+    "xlsx": "https://aistudiocdn.com/xlsx@^0.18.5",
+    "crypto-js": "https://aistudiocdn.com/crypto-js@^4.2.0",
+    "path": "https://aistudiocdn.com/path@^0.12.7",
+    "url": "https://aistudiocdn.com/url@^0.11.4"
+  }
+}
+</script>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').then(registration => {
+            console.log('SW registered: ', registration);
+          }).catch(registrationError => {
+            console.log('SW registration failed: ', registrationError);
+          });
+        });
+      }
+    </script>
+</body>
+</html>

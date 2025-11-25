@@ -1,0 +1,182 @@
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hướng dẫn sử dụng - Prompt Generator Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827;
+            color: #d1d5db;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            padding: 2rem;
+        }
+        h1, h2, h3 {
+            color: #fff;
+            font-weight: 700;
+            border-bottom: 1px solid #374151;
+            padding-bottom: 0.5rem;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+        }
+        h1 { font-size: 2.25rem; }
+        h2 { font-size: 1.875rem; }
+        h3 { font-size: 1.5rem; border-bottom: none; }
+        p, li {
+            line-height: 1.75;
+            margin-bottom: 1rem;
+        }
+        ul {
+            list-style-type: disc;
+            padding-left: 1.5rem;
+        }
+        code {
+            background-color: #374151;
+            color: #f3f4f6;
+            padding: 0.2rem 0.4rem;
+            border-radius: 0.25rem;
+            font-family: monospace;
+        }
+        strong {
+            color: #a5b4fc;
+        }
+        .note {
+            background-color: rgba(59, 130, 246, 0.1);
+            border-left: 4px solid #3b82f6;
+            padding: 1rem;
+            border-radius: 0.5rem;
+        }
+        .success-note {
+            background-color: rgba(16, 185, 129, 0.1);
+            border-left: 4px solid #10b981;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 Hướng dẫn sử dụng Prompt Generator Pro</h1>
+
+        <h2>1. Giới thiệu</h2>
+        <p>
+            <strong>Prompt Generator Pro</strong> là một công cụ mạnh mẽ được thiết kế để giúp bạn biến những ý tưởng sáng tạo thành kịch bản prompt chi tiết, chuyên nghiệp cho các mô hình AI tạo video như VEO 3. Ứng dụng cũng tích hợp khả năng theo dõi tiến độ sản xuất và ghép các video thành phẩm một cách liền mạch.
+        </p>
+
+        <h2>2. Kích hoạt & Cài đặt ban đầu</h2>
+        <h3>A. Kích hoạt ứng dụng</h3>
+        <p>
+            Lần đầu tiên mở ứng dụng, bạn sẽ thấy màn hình kích hoạt.
+        </p>
+        <ul>
+            <li>Sao chép <strong>"Mã máy tính"</strong> (Machine ID) hiển thị trên màn hình.</li>
+            <li>Gửi mã này cho quản trị viên (Cường-VFATS) để nhận <strong>"Mã kích hoạt"</strong> (License Key).</li>
+            <li>Dán mã kích hoạt nhận được vào ô và nhấn "Kích hoạt".</li>
+        </ul>
+         <div class="note success-note">
+            <p><strong>Cập nhật quan trọng:</strong> Nếu bạn cập nhật từ phiên bản cũ, ứng dụng sẽ <strong>tự động tìm và chuyển mã kích hoạt cũ</strong> của bạn sang hệ thống lưu trữ mới. Bạn sẽ không cần phải kích hoạt lại, đảm bảo trải nghiệm cập nhật liền mạch.</p>
+        </div>
+        <h3>B. Quản lý API Key</h3>
+        <p>
+            Để ứng dụng có thể giao tiếp với AI của Google, bạn cần cung cấp API Key.
+        </p>
+        <ul>
+            <li><strong>Lấy API Key ở đâu?</strong> Bạn có thể tạo API Key miễn phí tại <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:underline">Google AI Studio</a>.</li>
+            <li>Trong ứng dụng, bạn sẽ được đưa đến màn hình "Quản lý API Keys". Tại đây, bạn có thể thêm, xóa, và chọn một khóa để sử dụng.</li>
+        </ul>
+        <div class="note success-note">
+            <p><strong>Cải tiến mới:</strong> Tương tự như mã kích hoạt, danh sách API Key của bạn giờ đây cũng được lưu trữ an toàn và <strong>sẽ không bị xóa</strong> khi bạn cập nhật ứng dụng.</p>
+        </div>
+
+        <h2>3. Tab "Tạo Kịch Bản" - Biến ý tưởng thành kịch bản</h2>
+        <p>
+            Đây là nơi bạn cung cấp thông tin đầu vào để AI tạo ra kịch bản prompt.
+        </p>
+        <h3>A. Cài đặt sẵn (Presets) - Tính năng mới!</h3>
+        <p>
+            Để tăng tốc quá trình làm việc, bạn có thể lưu lại các tổ hợp cài đặt yêu thích của mình.
+        </p>
+        <ul>
+            <li><strong>Lưu cài đặt:</strong> Sau khi đã chọn xong các tùy chọn (Thể loại, Phong cách quay, Model AI, v.v.), hãy nhập tên cho cài đặt của bạn vào ô "Tên cài đặt mới..." và nhấn "Lưu".</li>
+            <li><strong>Tải cài đặt (Load Instant):</strong> Đơn giản chỉ cần chọn tên cài đặt từ danh sách thả xuống, ứng dụng sẽ <strong>tự động áp dụng các thông số ngay lập tức</strong> mà không cần nhấn thêm nút nào.</li>
+            <li><strong>Xóa cài đặt:</strong> Chọn một cài đặt từ danh sách và nhấn vào biểu tượng thùng rác để xóa.</li>
+        </ul>
+
+        <h3>B. Loại Video: MV Kể Chuyện</h3>
+        <ul>
+            <li><strong>Lời bài hát hoặc Ý tưởng:</strong> Dán toàn bộ lời bài hát hoặc mô tả chi tiết nhất có thể về câu chuyện, cảm xúc, bối cảnh bạn muốn thể hiện trong MV.</li>
+            <li><strong>Thể Loại MV & Phong cách quay (Đơn giản hóa):</strong> Các lựa chọn giờ đây sử dụng ngôn ngữ dễ hiểu, ví dụ "Kể chuyện (Phim ngắn)", "Đêm Neon huyền ảo", v.v. giúp bạn dễ dàng chọn đúng phong cách mà không cần am hiểu thuật ngữ kỹ thuật.</li>
+            <li><strong>Quốc gia:</strong> Rất quan trọng để AI tạo ra nhân vật, trang phục, kiến trúc và bối cảnh phù hợp với văn hóa bạn chọn.</li>
+            <li><strong>Thể loại nhạc:</strong> Chọn thể loại nhạc phù hợp (V-Pop, Jazz, EDM...) hoặc chọn "Khác" để nhập thủ công. Điều này giúp AI hiểu rõ hơn về nhịp điệu và năng lượng của kịch bản.</li>
+            <li><strong>Đồng nhất nhân vật:</strong> Chọn "Có" nếu bạn muốn các nhân vật chính có ngoại hình nhất quán trong suốt MV.</li>
+        </ul>
+        <h3>C. Loại Video: Live Acoustic</h3>
+        <ul>
+            <li><strong>Bối cảnh & Không khí:</strong> Mô tả không gian buổi trình diễn (VD: phòng thu ấm cúng, sân thượng hoàng hôn...).</li>
+            <li><strong>Tải ảnh ca sĩ:</strong> <strong>Rất quan trọng!</strong> Tải lên một bức ảnh rõ mặt của ca sĩ để AI nhận diện và mô tả ngoại hình chính xác nhất.</li>
+            <li><strong>Tên Ca Sĩ & Mô tả:</strong> Cung cấp thêm thông tin để AI hiểu rõ hơn.</li>
+        </ul>
+        <h3>D. Thông số chung & Hoàn thành</h3>
+        <ul>
+            <li><strong>Thời lượng bài hát:</strong> Nhập số phút và giây để ứng dụng tự động tính toán số lượng cảnh phù hợp.</li>
+            <li><strong>Tên Dự Án:</strong> Dùng để đặt tên cho file Excel kịch bản.</li>
+            <li><strong>Model AI:</strong> Chọn model phù hợp. <code>Gemini Flash Lite</code> nhanh nhất, <code>Gemini 2.5 Pro</code> mạnh và sáng tạo nhất.</li>
+            <li><strong>Độ Sáng Tạo (Nâng cấp):</strong> Thanh trượt giờ đây mặc định ở mức <strong>"An toàn & Logic"</strong> (0.3) để giảm thiểu lỗi. Khi điều chỉnh, ứng dụng sẽ hiển thị các nhãn mô tả trực quan như <strong>"Cân bằng & Sáng tạo"</strong> hoặc <strong>"Đột phá & Bất ngờ"</strong>.</li>
+            <li>Nhấn <strong>"Tạo Kịch Bản Prompt"</strong>. Sau khi AI tạo xong, nút <strong>"Lưu kịch bản & Theo dõi"</strong> sẽ xuất hiện bên cạnh.</li>
+            <li>Nhấn <strong>"Lưu kịch bản & Theo dõi"</strong>. Ứng dụng sẽ yêu cầu bạn chọn nơi lưu file Excel và tự động chuyển bạn sang tab "Theo Dõi Sản Xuất".</li>
+        </ul>
+
+        <h2>4. Tab "Theo Dõi Sản Xuất" - Quản lý tiến độ</h2>
+        <p>
+            Sau khi có file kịch bản, đây là trung tâm điều khiển của bạn. Trạng thái của các video sẽ được cập nhật tự động khi file Excel thay đổi.
+        </p>
+        <h3>A. Giao diện chính</h3>
+        <ul>
+            <li><strong>Tabs File:</strong> Mỗi file Excel bạn mở hoặc tạo sẽ là một tab riêng, giúp bạn quản lý nhiều dự án cùng lúc.</li>
+            <li><strong>Bảng thống kê & Bảng Jobs:</strong> Cung cấp cái nhìn tổng quan và chi tiết về tiến độ của từng cảnh (job).</li>
+        </ul>
+        <h3>B. Các nút chức năng chính</h3>
+        <ul>
+            <li><strong>Tải lại video:</strong> Quét lại thư mục dự án để tìm và liên kết các video đã được ToolFlows tạo ra.</li>
+            <li><strong>Tạo lại video đang xử lý:</strong> Reset trạng thái của các job bị "kẹt" ở "Processing" hoặc "Generating" để ToolFlows tạo lại.</li>
+            <li><strong>Mở ToolFlows:</strong> Chạy trực tiếp ToolFlows VEO 3. Lần đầu, bạn cần nhấn nút cài đặt (hình bánh răng) để chỉ định đường dẫn đến file <code>.exe</code> của ToolFlows.</li>
+            <li><strong>Ghép Thường / Ghép Theo Thời Gian / Ghép Thường Tất Cả:</strong> Nối các video đã hoàn thành lại thành một video duy nhất.</li>
+        </ul>
+        <h3>C. Tự động hóa & Cảnh báo (Tính năng mới!)</h3>
+        <ul>
+            <li><strong>Thông báo Hoàn thành File (Notification):</strong> Ngay khi một file Excel hoàn thành 100% các job, một thông báo hệ thống sẽ hiện lên ở góc màn hình.</li>
+            <li><strong>Cảnh báo Toàn bộ (Modal):</strong> Khi <strong>tất cả các file</strong> bạn đang theo dõi đều hoàn thành 100%, một cửa sổ màu vàng nổi bật sẽ hiện lên giữa màn hình để thông báo cho bạn.</li>
+            <li><strong>Cảnh báo Cập nhật:</strong> Khi có bản cập nhật mới, một cửa sổ tương tự sẽ xuất hiện yêu cầu bạn cập nhật ngay.</li>
+            <li><strong>Tự động tạo lại video bị kẹt:</strong> Ứng dụng sẽ tự động giám sát. Nếu một video bị kẹt ở trạng thái "Processing" hoặc "Generating" quá <strong>4 phút</strong>, nó sẽ được tự động reset để ToolFlows tạo lại.</li>
+        </ul>
+
+        <h2>5. Quy trình làm việc tiêu chuẩn (Workflow)</h2>
+        <ol class="list-decimal pl-6">
+            <li><strong>Bước 1:</strong> Dùng tab <strong>"Tạo Kịch Bản"</strong> để tạo ra file kịch bản <code>.xlsx</code> và lưu vào một thư mục dự án riêng.</li>
+            <li><strong>Bước 2:</strong> Ứng dụng tự chuyển sang tab <strong>"Theo Dõi Sản Xuất"</strong>.</li>
+            <li><strong>Bước 3:</strong> Nhấn nút <strong>"Mở ToolFlows"</strong>. Nhấn nút <strong>"Copy Path Thư mục"</strong> trong ứng dụng, sau đó dán đường dẫn này vào ô "FOLDER EXCEL" trong ToolFlows và bắt đầu quá trình tạo video.</li>
+            <li><strong>Bước 4:</strong> Quay lại ứng dụng Prompt Generator Pro, bạn sẽ thấy trạng thái các jobs tự động thay đổi.</li>
+            <li><strong>Bước 5:</strong> Nếu video đã được tạo nhưng trạng thái chưa cập nhật, hãy dùng nút <strong>"Tải lại video"</strong>.</li>
+            <li><strong>Bước 6:</strong> Khi tất cả các video cần thiết đã "Completed", sử dụng chức năng <strong>"Ghép Thường"</strong> hoặc <strong>"Ghép Theo Thời Gian"</strong>.</li>
+        </ol>
+
+        <h2>6. Xử lý sự cố thường gặp</h2>
+        <ul>
+            <li><strong>Mã kích hoạt hoặc API Key bị mất sau khi cập nhật:</strong> <strong class="text-emerald-400">ĐÃ KHẮC PHỤC.</strong> Từ phiên bản mới, dữ liệu của bạn sẽ được lưu trữ vĩnh viễn và không bị mất khi cập nhật.</li>
+            <li><strong>Cấu trúc file Excel bị thay đổi, ứng dụng bị treo sau khi "Tạo lại video":</strong> <strong class="text-emerald-400">ĐÃ KHẮC PHỤC.</strong> Lỗi nghiêm trọng này đã được sửa, đảm bảo file Excel của bạn luôn được bảo toàn cấu trúc.</li>
+            <li><strong>Video đã tạo xong nhưng không hiện thumbnail:</strong>
+                <ul>
+                    <li>Nhấn nút <strong>"Tải lại video"</strong>.</li>
+                    <li>Đảm bảo cấu trúc thư mục của bạn đúng: các video được tạo ra nằm trong một <strong>thư mục con</strong> có tên trùng với tên file Excel. Ví dụ: <code>.../Du_An_A/Du_An_A.xlsx</code> và <code>.../Du_An_A/Du_An_A/Video_Job_1_...mp4</code>.</li>
+                </ul>
+            </li>
+            <li><strong>Job bị kẹt ở "Processing" hoặc "Generating" quá lâu:</strong> <strong class="text-emerald-400">ĐÃ TỰ ĐỘNG HÓA.</strong> Ứng dụng sẽ tự động xử lý sau <strong>4 phút</strong>. Bạn cũng có thể nhấn nút "Tạo lại video đang xử lý" để can thiệp ngay.</li>
+        </ul>
+    </div>
+</body>
+</html>

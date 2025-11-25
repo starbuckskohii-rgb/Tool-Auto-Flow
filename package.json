@@ -1,0 +1,67 @@
+{
+  "name": "prompt-generator-pro",
+  "version": "1.1.6",
+  "description": "An application to generate professional visual scripts for Music Videos and Live Shows by transforming ideas into detailed prompts for AI video models.",
+  "main": "main.js",
+  "homepage": "./",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "start": "npm run build && electron .",
+    "dist": "npm run build && electron-builder --publish always"
+  },
+  "author": "Prompt Generator Pro",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@google/genai": "^1.28.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "crypto-js": "^4.2.0",
+    "xlsx": "^0.18.5",
+    "electron-updater": "^6.1.8",
+    "electron-log": "^5.1.5"
+  },
+  "devDependencies": {
+    "@types/crypto-js": "^4.2.2",
+    "@types/react": "^18.2.48",
+    "@types/react-dom": "^18.2.18",
+    "@vitejs/plugin-react": "^4.2.1",
+    "electron": "^29.1.0",
+    "electron-builder": "^24.13.3",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.12"
+  },
+  "build": {
+    "appId": "com.promptgenerator.pro",
+    "productName": "Prompt Generator Pro",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "BeCuong18",
+        "repo": "App_video"
+      }
+    ],
+    "files": [
+      "dist/**/*",
+      "main.js"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/ffmpeg",
+        "to": "ffmpeg"
+      }
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "assets/icon.icns"
+    }
+  }
+}
