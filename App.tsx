@@ -10,7 +10,7 @@ import * as XLSX from 'xlsx';
 import CryptoJS from 'crypto-js';
 import { ActiveTab, GeneratorTab, PromptItem, GeneratorInputs, ApiKey, AppConfig } from './types';
 import { ideaMatrix, criticalRules, cinematicQualityRule, religiousGuardrails, MARKETS } from './constants';
-import { LoaderIcon, KeyIcon, TrashIcon, CogIcon } from './components/Icons';
+import { LoaderIcon, KeyIcon, TrashIcon, CogIcon, InfoIcon } from './components/Icons';
 import Tracker from './components/Tracker';
 
 const isElectron = navigator.userAgent.toLowerCase().includes('electron');
@@ -94,6 +94,8 @@ const App: React.FC = () => {
     const [activeApiKey, setActiveApiKey] = useState<ApiKey | null>(null);
     const [configLoaded, setConfigLoaded] = useState(false);
     const [activeTab, setActiveTab] = useState<ActiveTab>('generator');
+    const [appVersion, setAppVersion] = useState('');
+    const [updateStatus, setUpdateStatus] = useState<string>('');
     
     // --- Generator State ---
     const [genTab, setGenTab] = useState<GeneratorTab>('jesus');
@@ -145,10 +147,27 @@ const App: React.FC = () => {
                 }
                 setConfigLoaded(true);
             });
+            
+            // Get Version
+            ipcRenderer.invoke('get-app-version').then((v: string) => setAppVersion(v));
+
+            // Listen for update status
+            const updateListener = (_: any, status: string) => {
+                setUpdateStatus(status);
+                if (status === 'available') alert('Có bản cập nhật mới! Đang tải về...');
+                if (status === 'not-available') alert('Bạn đang sử dụng phiên bản mới nhất.');
+                if (status === 'error') alert('Lỗi khi kiểm tra cập nhật.');
+            };
+            ipcRenderer.on('update-status', updateListener);
+            return () => {
+                ipcRenderer.removeListener('update-status', updateListener);
+            };
+
         } else {
             setMachineId('WEB-DEV-ID');
             setIsActivated(true);
             setConfigLoaded(true);
+            setAppVersion('1.0.0-dev');
             // Mock key for dev
             if(process.env.API_KEY) setApiKeys([{id: '1', name: 'Dev Key', value: process.env.API_KEY || ''}]);
         }
@@ -156,6 +175,15 @@ const App: React.FC = () => {
 
     const saveConfig = (update: Partial<AppConfig>) => {
         if (isElectron && ipcRenderer) ipcRenderer.invoke('save-app-config', update);
+    };
+
+    const handleCheckUpdate = () => {
+        if (isElectron && ipcRenderer) {
+            setUpdateStatus('checking');
+            ipcRenderer.invoke('check-for-updates');
+        } else {
+            alert('Chức năng này chỉ có trên phiên bản Desktop.');
+        }
     };
 
     // --- Logic for Generator ---
@@ -433,6 +461,11 @@ const App: React.FC = () => {
                              </div>
                          </div>
                          <div className="flex items-center gap-3">
+                             {/* Version Info */}
+                             <button onClick={handleCheckUpdate} className="text-xs text-gray-500 hover:text-indigo-600 flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-full" title={updateStatus === 'checking' ? 'Đang kiểm tra...' : 'Kiểm tra cập nhật'}>
+                                 <InfoIcon className={`w-3 h-3 ${updateStatus === 'checking' ? 'animate-spin' : ''}`} /> v{appVersion}
+                             </button>
+
                              {activeApiKey && <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full font-bold flex items-center gap-1"><KeyIcon className="w-3 h-3"/> {activeApiKey.name}</span>}
                              <button onClick={() => setActiveApiKey(null)} className="text-gray-400 hover:text-gray-600"><CogIcon className="w-5 h-5"/></button>
                          </div>

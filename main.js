@@ -11,6 +11,8 @@ const { randomUUID } = require('crypto');
 // Configure logging for autoUpdater
 autoUpdater.logger = require('electron-log');
 autoUpdater.logger.transports.file.level = 'info';
+// Tắt tự động tải về nếu muốn người dùng xác nhận, nhưng ở đây ta để true cho tiện
+autoUpdater.autoDownload = true; 
 
 const fileWatchers = new Map();
 const jobStateTimestamps = new Map(); // Map<filePath, Map<jobId, { status, timestamp }>>
@@ -347,6 +349,23 @@ function createWindow() {
 
   mainWindow.loadFile(startUrl);
   
+  // --- Auto Updater Events ---
+  autoUpdater.on('checking-for-update', () => {
+    if (mainWindow) mainWindow.webContents.send('update-status', 'checking');
+  });
+
+  autoUpdater.on('update-available', () => {
+    if (mainWindow) mainWindow.webContents.send('update-status', 'available');
+  });
+
+  autoUpdater.on('update-not-available', () => {
+    if (mainWindow) mainWindow.webContents.send('update-status', 'not-available');
+  });
+
+  autoUpdater.on('error', (err) => {
+    if (mainWindow) mainWindow.webContents.send('update-status', 'error', err.message);
+  });
+
   autoUpdater.on('update-downloaded', () => {
       showWindowAndNotify(
           'Có bản cập nhật mới!',
@@ -375,6 +394,19 @@ app.whenReady().then(() => {
             guideWindow.loadFile(guideUrl);
             guideWindow.setMenu(null);
           }
+        },
+        { type: 'separator' },
+        {
+            label: 'Kiểm tra cập nhật...',
+            click: () => {
+                autoUpdater.checkForUpdatesAndNotify();
+                // Send explicit checking status when clicked from menu
+                if(mainWindow) mainWindow.webContents.send('update-status', 'checking');
+            }
+        },
+        {
+            label: `Phiên bản ${app.getVersion()}`,
+            enabled: false
         },
         { type: 'separator' },
         {
@@ -428,6 +460,10 @@ app.on('activate', () => {
 
 // --- IPC Handlers ---
 ipcMain.handle('get-app-version', () => app.getVersion());
+ipcMain.handle('check-for-updates', async () => {
+    return await autoUpdater.checkForUpdates();
+});
+
 ipcMain.handle('get-app-config', () => readConfig());
 ipcMain.handle('save-app-config', async (event, configToSave) => {
     try {
