@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -26,10 +27,27 @@
             background-image: linear-gradient(135deg, var(--bg-start) 0%, var(--bg-end) 100%);
             color: var(--text-primary);
             min-height: 100vh;
+            overflow: hidden; /* Prevent body scroll, handle inside containers */
         }
-        .gradient-bg {
-            /* Fallback or override if needed, but body handles main bg */
+        
+        /* Modern Scrollbar for Windows 11 feel */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
         }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.02);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.15);
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 0, 0, 0.3);
+        }
+        
         .glassmorphism {
             background: var(--card-bg);
             backdrop-filter: blur(12px);
@@ -107,58 +125,6 @@
         .job-table td {
             color: #1f2937;
             border-bottom: 1px solid rgba(0,0,0,0.05);
-        }
-        
-        /* Tracker Tabs */
-        .tracker-tabs-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-            border-bottom: 2px solid rgba(0, 0, 0, 0.1);
-            padding-bottom: 0.75rem;
-            margin-bottom: 1.5rem;
-        }
-        .tracker-tab {
-            position: relative;
-            display: flex;
-            align-items: center;
-            padding: 0.5rem 1rem;
-            cursor: pointer;
-            border: 1px solid transparent;
-            border-radius: 0.5rem;
-            background-color: transparent;
-            color: #6b7280;
-            font-weight: 500;
-            transition: all 0.2s ease-in-out;
-            white-space: nowrap;
-            overflow: hidden;
-        }
-        .tracker-tab:hover {
-            background-color: rgba(0, 0, 0, 0.05);
-            color: #1f2937;
-        }
-        .tracker-tab.active {
-            color: #4f46e5;
-            font-weight: 600;
-            background-color: rgba(79, 70, 229, 0.1);
-            border-color: rgba(79, 70, 229, 0.3);
-        }
-        .tab-close-btn {
-            margin-left: 0.75rem;
-            padding: 0.25rem;
-            border-radius: 9999px;
-            line-height: 1;
-        }
-        .tab-close-btn:hover {
-            background-color: rgba(0, 0, 0, 0.1);
-        }
-        .tab-progress-frame {
-            position: absolute;
-            inset: 0;
-            border: 2px solid #4f46e5;
-            border-radius: inherit;
-            transition: clip-path 0.4s ease-in-out;
-            pointer-events: none;
         }
         
         /* Sliders */
