@@ -6,14 +6,11 @@ import {
   FolderIcon, 
   RetryIcon, 
   PlayIcon, 
-  CheckIcon, 
   TrashIcon, 
   LoaderIcon, 
   ExternalLinkIcon, 
-  ChartIcon,
   CogIcon,
   SearchIcon,
-  InfoIcon,
   LinkIcon
 } from './Icons';
 
