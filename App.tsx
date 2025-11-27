@@ -549,7 +549,7 @@ const App: React.FC = () => {
 
              {/* Header */}
              <header className="bg-white/50 backdrop-blur-lg border-b border-white/20 sticky top-0 z-50">
-                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                 <div className={`mx-auto px-4 sm:px-6 lg:px-8 ${activeTab === 'tracker' ? 'max-w-[98%] w-full' : 'max-w-7xl'}`}>
                      <div className="flex justify-between h-16 items-center">
                          <div className="flex items-center gap-4">
                              <h1 className="text-2xl font-extrabold gradient-text">Trọng - Tool Auto Flow</h1>
@@ -571,7 +571,7 @@ const App: React.FC = () => {
                  </div>
              </header>
 
-             <main className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+             <main className={`mx-auto p-4 sm:p-6 lg:p-8 ${activeTab === 'tracker' ? 'max-w-[98%] w-full' : 'max-w-7xl'}`}>
                 {activeTab === 'generator' && (
                     <div className="space-y-8">
                         {/* Sub-Tabs for Generator */}
