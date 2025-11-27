@@ -1,5 +1,4 @@
 
-
 import React, {
   useState,
   useCallback,
@@ -40,14 +39,14 @@ const Activation: React.FC<ActivationProps> = ({ machineId, onActivate }) => {
     setIsActivating(false);
   };
   return (
-    <div className="text-gray-800 min-h-screen flex items-center justify-center p-4">
-      <div className="glass-card rounded-2xl p-8 shadow-2xl max-w-md w-full">
-        <h1 className="text-2xl font-bold mb-4 text-center gradient-text">Kích hoạt ứng dụng</h1>
-        <p className="mb-4 text-sm text-gray-600">Mã máy: <code className="bg-gray-200 p-1 rounded select-all">{machineId}</code></p>
+    <div className="text-gray-800 min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-red-50 to-green-50">
+      <div className="glass-card rounded-2xl p-8 shadow-2xl max-w-md w-full border-t-4 border-red-500">
+        <h1 className="text-2xl font-bold mb-4 text-center text-red-700">🎄 Kích hoạt ứng dụng</h1>
+        <p className="mb-4 text-sm text-gray-600">Mã máy: <code className="bg-gray-200 p-1 rounded select-all text-green-700 font-bold">{machineId}</code></p>
         <form onSubmit={handleSubmit} className="space-y-4">
-            <textarea value={key} onChange={e => setKey(e.target.value)} rows={3} style={{color: '#ffffff'}} className="w-full p-3 border border-gray-600 rounded-lg bg-gray-900 text-white placeholder-gray-400" placeholder="Nhập mã kích hoạt..." required />
-            <button type="submit" disabled={isActivating} className="w-full btn-primary py-3 rounded-xl font-bold">{isActivating ? <LoaderIcon /> : 'Kích hoạt'}</button>
-            {error && <p className="text-red-500 text-sm">{error}</p>}
+            <textarea value={key} onChange={e => setKey(e.target.value)} rows={3} style={{color: '#ffffff'}} className="w-full p-3 border border-gray-600 rounded-lg bg-gray-800 text-white placeholder-gray-400 focus:ring-2 focus:ring-red-500" placeholder="Nhập mã kích hoạt..." required />
+            <button type="submit" disabled={isActivating} className="w-full btn-primary py-3 rounded-xl font-bold shadow-lg">{isActivating ? <LoaderIcon /> : 'Kích hoạt ngay'}</button>
+            {error && <p className="text-red-500 text-sm font-bold bg-red-50 p-2 rounded">{error}</p>}
         </form>
       </div>
     </div>
@@ -65,24 +64,24 @@ const ApiKeyManagerScreen: React.FC<ApiKeyManagerProps> = ({ apiKeys, onKeySelec
     const [val, setVal] = useState('');
     const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); onKeyAdd({ id: crypto.randomUUID(), name, value: val }); };
     return (
-        <div className="min-h-screen flex items-center justify-center p-4">
-            <div className="glass-card p-8 rounded-2xl max-w-2xl w-full">
-                <h1 className="text-2xl font-bold mb-6 text-center gradient-text">Quản lý API Keys</h1>
-                <div className="space-y-2 mb-6 max-h-60 overflow-y-auto">
+        <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
+            <div className="glass-card p-8 rounded-2xl max-w-2xl w-full border border-green-100 shadow-xl">
+                <h1 className="text-2xl font-bold mb-6 text-center text-green-800">Quản lý API Keys 🔑</h1>
+                <div className="space-y-2 mb-6 max-h-60 overflow-y-auto custom-scrollbar">
                     {apiKeys.map(k => (
-                        <div key={k.id} className="flex justify-between items-center p-3 bg-white/50 rounded-lg">
-                            <div><div className="font-bold">{k.name}</div><div className="text-xs text-gray-500 truncate w-40">{k.value.substring(0, 10)}...</div></div>
+                        <div key={k.id} className="flex justify-between items-center p-3 bg-white border border-gray-100 rounded-lg shadow-sm hover:shadow-md transition">
+                            <div><div className="font-bold text-gray-700">{k.name}</div><div className="text-xs text-gray-400 truncate w-40">{k.value.substring(0, 10)}...</div></div>
                             <div className="flex gap-2">
-                                <button onClick={() => onKeySelect(k)} className="px-3 py-1 bg-teal-500 text-white rounded-lg text-sm">Chọn</button>
-                                <button onClick={() => onKeyDelete(k.id)} className="text-red-500"><TrashIcon className="w-5 h-5"/></button>
+                                <button onClick={() => onKeySelect(k)} className="px-3 py-1 bg-green-600 text-white rounded-lg text-sm font-bold hover:bg-green-700">Chọn</button>
+                                <button onClick={() => onKeyDelete(k.id)} className="text-red-400 hover:text-red-600"><TrashIcon className="w-5 h-5"/></button>
                             </div>
                         </div>
                     ))}
                 </div>
                 <form onSubmit={handleSubmit} className="space-y-3 pt-4 border-t border-gray-200">
-                    <input value={name} onChange={e => setName(e.target.value)} style={{color: '#ffffff'}} placeholder="Tên Key" className="w-full p-2 border border-gray-600 rounded bg-gray-900 text-white placeholder-gray-400" required />
-                    <input value={val} onChange={e => setVal(e.target.value)} style={{color: '#ffffff'}} placeholder="API Key Value" type="password" className="w-full p-2 border border-gray-600 rounded bg-gray-900 text-white placeholder-gray-400" required />
-                    <button className="w-full btn-primary py-2 rounded-lg font-bold">Thêm Key Mới</button>
+                    <input value={name} onChange={e => setName(e.target.value)} style={{color: '#ffffff'}} placeholder="Tên Key (VD: Key Giáng Sinh)" className="w-full p-2 border border-gray-600 rounded bg-gray-800 text-white placeholder-gray-400" required />
+                    <input value={val} onChange={e => setVal(e.target.value)} style={{color: '#ffffff'}} placeholder="API Key Value" type="password" className="w-full p-2 border border-gray-600 rounded bg-gray-800 text-white placeholder-gray-400" required />
+                    <button className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-bold shadow-md transition">Thêm Key Mới</button>
                 </form>
             </div>
         </div>
@@ -119,7 +118,7 @@ const App: React.FC = () => {
         duration: 200,
         speed: 1.0,
         mode: 'character',
-        month: '11',
+        month: '12',
         loopType: 'person',
         characterDesc: '',
         characterImage: null
@@ -285,7 +284,7 @@ const App: React.FC = () => {
 
     const suggestScript = async () => {
         if (!activeApiKey) return setFeedback({type: 'error', message: 'Vui lòng chọn API Key'});
-        setLoadingText("AI đang viết gợi ý...");
+        setLoadingText("AI đang viết gợi ý Giáng Sinh...");
         setIsLoading(true);
         setFeedback(null);
 
@@ -294,17 +293,17 @@ const App: React.FC = () => {
             let extraInstruction = "";
             if (genTab === 'starbucks') extraInstruction = "Tập trung vào không gian quán Starbucks, chi tiết ly cà phê có logo, barista pha chế, và sản phẩm mới.";
 
-            const basePrompt = `Bạn là một đạo diễn sáng tạo. Dựa trên ý tưởng cơ bản: "${inputs.basicIdea || 'Chủ đề video'}", hãy phân tích và đưa ra gợi ý ngắn gọn.
+            const basePrompt = `Bạn là một đạo diễn sáng tạo chuyên về chủ đề Giáng Sinh và Lễ Hội. Dựa trên ý tưởng cơ bản: "${inputs.basicIdea || 'Chủ đề video'}", hãy phân tích và đưa ra gợi ý ngắn gọn.
             ${extraInstruction}
             
             YÊU CẦU OUTPUT (Tiếng Việt):
             Hãy trả về kết quả theo đúng định dạng sau (không viết dài dòng thành bài văn):
 
-            Chủ Đề: [Tên chủ đề ngắn gọn]
+            Chủ Đề: [Tên chủ đề ngắn gọn, mang không khí lễ hội]
             Ý Tưởng Cảnh Quay: 
             - [Ý tưởng 1: Mô tả ngắn gọn cảnh quay]
             - [Ý tưởng 2: Mô tả ngắn gọn cảnh quay]
-            Chi tiết Kỹ thuật/Màu sắc: [Mô tả tông màu, ánh sáng, chuyển động camera phù hợp]
+            Chi tiết Kỹ thuật/Màu sắc: [Mô tả tông màu (Vàng ấm, Đỏ rượu, Xanh thông...), ánh sáng, chuyển động camera phù hợp]
 
             Lưu ý: Phong cách ${inputs.style}. Thị trường mục tiêu: ${inputs.market}.`;
 
@@ -325,7 +324,7 @@ const App: React.FC = () => {
         if (!inputs.detailedIdea && !inputs.basicIdea) return setFeedback({type: 'error', message: 'Vui lòng nhập ý tưởng'});
         
         setIsLoading(true);
-        setLoadingText("AI đang sáng tạo...");
+        setLoadingText("AI đang sáng tạo không khí lễ hội...");
         setFeedback(null);
         setGeneratedPrompts([]);
 
@@ -345,7 +344,6 @@ const App: React.FC = () => {
 
             // --- ADVANCED CHARACTER LOGIC ---
             if (genTab === 'jesus') {
-                // Hardcoded Jesus Character Injection
                 charRule = `
                 [CHARACTER REFERENCE - MANDATORY]
                 Every single prompt MUST explicitly describe Jesus to ensure consistency. 
@@ -412,7 +410,7 @@ const App: React.FC = () => {
                 }
 
                 const prompt = `
-                    You are a video director. 
+                    You are a video director specializing in Christmas/Holiday themes. 
                     Idea/Direction: "${ideaToUse}".
                     Style: ${inputs.style}.
                     ${genTab === 'seasonal' ? `Month: ${inputs.month}` : ''}
@@ -488,67 +486,65 @@ const App: React.FC = () => {
         }
     };
 
-    // --- TAB ICON HELPER ---
     const getTabIcon = (tab: GeneratorTab) => {
         switch(tab) {
             case 'jesus': return <span className="text-lg">✝️</span>;
-            case 'trending': return <FlameIcon className="w-4 h-4" />;
-            case 'seasonal': return <CalendarIcon className="w-4 h-4" />;
-            case 'looping': return <LoopIcon className="w-4 h-4" />;
-            case 'cafe': return <CoffeeIcon className="w-4 h-4" />;
+            case 'trending': return <FlameIcon className="w-4 h-4 text-orange-500" />;
+            case 'seasonal': return <CalendarIcon className="w-4 h-4 text-red-500" />;
+            case 'looping': return <LoopIcon className="w-4 h-4 text-blue-500" />;
+            case 'cafe': return <CoffeeIcon className="w-4 h-4 text-brown-500" />;
             case 'starbucks': return <span className="text-lg">🥤</span>;
-            case 'concert': return <MicIcon className="w-4 h-4" />;
-            case 'stage': return <StageIcon className="w-4 h-4" />;
+            case 'concert': return <MicIcon className="w-4 h-4 text-purple-500" />;
+            case 'stage': return <StageIcon className="w-4 h-4 text-indigo-500" />;
             default: return null;
         }
     };
 
-    // --- Render Logic ---
-
-    if (!configLoaded) return <div className="min-h-screen flex items-center justify-center text-gray-500"><LoaderIcon /> Loading...</div>;
+    if (!configLoaded) return <div className="min-h-screen flex items-center justify-center text-gray-500 bg-blue-50"><LoaderIcon /> <span className="ml-2">Đang tải dữ liệu Giáng Sinh...</span></div>;
     if (!isActivated) return <Activation machineId={machineId} onActivate={async (key) => { saveConfig({ licenseKey: key }); setIsActivated(true); return true; }} />;
     if (!activeApiKey) return <ApiKeyManagerScreen apiKeys={apiKeys} onKeyAdd={(k) => { const newKeys=[...apiKeys, k]; setApiKeys(newKeys); saveConfig({ apiKeysEncrypted: encrypt(JSON.stringify(newKeys)) }); }} onKeyDelete={(id) => { const newKeys=apiKeys.filter(k=>k.id!==id); setApiKeys(newKeys); saveConfig({ apiKeysEncrypted: encrypt(JSON.stringify(newKeys)) }); }} onKeySelect={(k) => { setActiveApiKey(k); saveConfig({ activeApiKeyId: k.id }); }} />;
 
     return (
-        <div className="min-h-screen relative bg-gray-50/50">
-            {/* Update/Loading Modals */}
+        <div className="min-h-screen relative">
             {showProgressModal && (
                 <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-8 text-center animate-fade-in-up">
-                         <div className="mb-4 text-indigo-600 flex justify-center"><LoaderIcon /></div>
-                        <h3 className="text-xl font-bold text-gray-900 mb-2">Đang tải bản cập nhật...</h3>
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-8 text-center animate-fade-in-up border-t-4 border-green-500">
+                         <div className="mb-4 text-green-600 flex justify-center"><LoaderIcon /></div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">Đang tải cập nhật Giáng Sinh...</h3>
                         <div className="w-full bg-gray-200 rounded-full h-4 mb-2 overflow-hidden">
-                            <div className="bg-indigo-600 h-4 rounded-full transition-all duration-300 ease-out" style={{ width: `${downloadProgress}%` }}></div>
+                            <div className="bg-green-600 h-4 rounded-full transition-all duration-300 ease-out" style={{ width: `${downloadProgress}%` }}></div>
                         </div>
-                        <p className="font-bold text-gray-700">{downloadProgress}%</p>
+                        <p className="font-bold text-green-700">{downloadProgress}%</p>
                     </div>
                 </div>
             )}
             
             {isLoading && (
-                <div className="fixed inset-0 z-[9999] bg-indigo-900/90 backdrop-blur-sm flex flex-col items-center justify-center">
+                <div className="fixed inset-0 z-[9999] bg-red-900/80 backdrop-blur-sm flex flex-col items-center justify-center">
                     <div className="loader-ring"><div></div><div></div><div></div><div></div></div>
                     <p className="mt-6 text-white text-xl font-bold tracking-wide animate-pulse">{loadingText}</p>
                 </div>
             )}
 
-             {/* Header - Fixed Width */}
-             <header className="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50 shadow-sm supports-[backdrop-filter]:bg-white/60">
+             {/* Header - Christmas Style */}
+             <header className="bg-white/90 backdrop-blur-md border-b-2 border-red-100 sticky top-0 z-50 shadow-sm">
                  <div className="mx-auto px-4 sm:px-6 lg:px-8 max-w-[98%] w-full">
                      <div className="flex justify-between h-16 items-center">
                          <div className="flex items-center gap-8">
-                             <h1 className="text-2xl font-extrabold text-indigo-900 tracking-tight">Trọng - Tool Auto Flow</h1>
-                             <div className="hidden md:flex bg-gray-100/80 p-1 rounded-xl border border-gray-200/50 shadow-inner">
-                                 <button onClick={() => setActiveTab('tracker')} className={`px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${activeTab === 'tracker' ? 'bg-white text-indigo-600 shadow-sm ring-1 ring-black/5' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'}`}>Theo Dõi Sản Xuất</button>
-                                 <button onClick={() => setActiveTab('generator')} className={`px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${activeTab === 'generator' ? 'bg-white text-indigo-600 shadow-sm ring-1 ring-black/5' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'}`}>Tạo Kịch Bản</button>
+                             <h1 className="text-2xl font-extrabold text-red-700 tracking-tight flex items-center gap-2">
+                                 <span>🎄</span> Trọng - Tool Auto Flow
+                             </h1>
+                             <div className="hidden md:flex bg-gray-100/80 p-1 rounded-xl border border-gray-200 shadow-inner">
+                                 <button onClick={() => setActiveTab('tracker')} className={`px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${activeTab === 'tracker' ? 'bg-green-600 text-white shadow-md' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'}`}>Theo Dõi Sản Xuất</button>
+                                 <button onClick={() => setActiveTab('generator')} className={`px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${activeTab === 'generator' ? 'bg-red-600 text-white shadow-md' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'}`}>Tạo Kịch Bản</button>
                              </div>
                          </div>
                          <div className="flex items-center gap-3">
-                             <button onClick={handleCheckUpdate} className="text-xs text-gray-500 hover:text-indigo-600 flex items-center gap-1 bg-gray-50 px-2 py-1 rounded border border-gray-200">
+                             <button onClick={handleCheckUpdate} className="text-xs text-gray-500 hover:text-green-600 flex items-center gap-1 bg-white px-2 py-1 rounded border border-gray-200 shadow-sm hover:shadow">
                                  <InfoIcon className={`w-3 h-3 ${updateStatus === 'checking' ? 'animate-spin' : ''}`} /> v{appVersion}
                              </button>
-                             {activeApiKey && <span className="text-xs bg-green-50 text-green-700 border border-green-100 px-2 py-1 rounded font-bold flex items-center gap-1"><KeyIcon className="w-3 h-3"/> {activeApiKey.name}</span>}
-                             <button onClick={() => setActiveApiKey(null)} className="text-gray-400 hover:text-gray-600"><CogIcon className="w-5 h-5"/></button>
+                             {activeApiKey && <span className="text-xs bg-green-100 text-green-800 border border-green-200 px-2 py-1 rounded-lg font-bold flex items-center gap-1 shadow-sm"><KeyIcon className="w-3 h-3"/> {activeApiKey.name}</span>}
+                             <button onClick={() => setActiveApiKey(null)} className="text-gray-400 hover:text-red-500"><CogIcon className="w-5 h-5"/></button>
                          </div>
                      </div>
                  </div>
@@ -558,7 +554,7 @@ const App: React.FC = () => {
                 {activeTab === 'generator' && (
                     <div className="space-y-6">
                         
-                        {/* Tab Navigation */}
+                        {/* Tab Navigation - Festive */}
                         <div className="bg-white p-2 rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
                             <div className="flex flex-nowrap md:flex-wrap space-x-1 min-w-max">
                                 {(['jesus', 'trending', 'seasonal', 'looping', 'cafe', 'starbucks', 'concert', 'stage'] as GeneratorTab[]).map(tab => {
@@ -568,7 +564,7 @@ const App: React.FC = () => {
                                         <button 
                                             key={tab} 
                                             onClick={() => { setGenTab(tab); setFeedback(null); }} 
-                                            className={`px-4 py-2.5 rounded-lg text-sm font-bold transition-all whitespace-nowrap flex items-center gap-2 border ${isActive ? 'bg-red-50 text-red-600 border-red-100' : 'bg-transparent text-gray-500 border-transparent hover:bg-gray-50 hover:text-gray-700'}`}
+                                            className={`px-4 py-2.5 rounded-lg text-sm font-bold transition-all whitespace-nowrap flex items-center gap-2 border ${isActive ? 'bg-red-50 text-red-600 border-red-200 shadow-sm' : 'bg-transparent text-gray-500 border-transparent hover:bg-red-50 hover:text-red-500'}`}
                                         >
                                             {getTabIcon(tab)}
                                             <span>{labels[tab]}</span>
@@ -578,52 +574,51 @@ const App: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* Character Creation Area - Only for Live Concert & Stage */}
+                        {/* Character Creation Area */}
                         {(genTab === 'concert' || genTab === 'stage') && (
-                            <div className="glass-card p-6 animate-fade-in-up bg-white">
-                                <div className="flex items-center gap-2 mb-4 text-green-700 font-bold uppercase text-xs tracking-wider">
+                            <div className="glass-card p-6 animate-fade-in-up bg-white border-t-4 border-purple-500">
+                                <div className="flex items-center gap-2 mb-4 text-purple-700 font-bold uppercase text-xs tracking-wider">
                                     <UserIcon className="w-4 h-4"/> Thiết Lập Nhân Vật (Bắt buộc)
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-gray-600">1. Mô tả nhân vật chính:</label>
-                                        <textarea value={inputs.characterDesc} onChange={e => handleInputChange('characterDesc', e.target.value)} className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 outline-none h-32 resize-none shadow-sm" placeholder="Ví dụ: một người phụ nữ trẻ, tóc nâu dài xoăn nhẹ, mặc váy trắng..."></textarea>
+                                        <textarea value={inputs.characterDesc} onChange={e => handleInputChange('characterDesc', e.target.value)} className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-purple-500 outline-none h-32 resize-none shadow-sm" placeholder="Ví dụ: một người phụ nữ trẻ, tóc nâu dài xoăn nhẹ, mặc váy trắng..."></textarea>
                                     </div>
                                     <div className="space-y-2">
                                         <div className="text-center text-xs text-gray-400 font-bold uppercase my-1">-- HOẶC --</div>
                                         <label className="text-xs font-bold text-gray-600">2. Tải ảnh lên để AI phân tích:</label>
-                                        <div className="file-input-wrapper w-full bg-white text-gray-500 font-medium h-24 rounded-xl border-2 border-dashed border-gray-300 hover:border-green-500 hover:bg-green-50 text-center transition cursor-pointer flex flex-col items-center justify-center text-xs relative group">
+                                        <div className="file-input-wrapper w-full bg-white text-gray-500 font-medium h-24 rounded-xl border-2 border-dashed border-gray-300 hover:border-purple-500 hover:bg-purple-50 text-center transition cursor-pointer flex flex-col items-center justify-center text-xs relative group">
                                             {inputs.characterImage ? (
-                                                <span className="text-green-600 font-bold flex items-center gap-1"><span className="text-lg">✓</span> Đã chọn ảnh</span>
+                                                <span className="text-purple-600 font-bold flex items-center gap-1"><span className="text-lg">✓</span> Đã chọn ảnh</span>
                                             ) : (
                                                 <span className="flex items-center gap-2"><UploadIcon className="w-4 h-4"/> Chọn hoặc Dán ảnh (Ctrl+V)</span>
                                             )}
                                             <input type="file" accept="image/*" onChange={handleImageUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
                                         </div>
-                                        {inputs.characterImage && <button onClick={analyzeCharacterImage} className="text-xs text-green-600 font-bold w-full text-center hover:underline bg-green-50 py-1 rounded">✨ Phân tích ảnh ngay</button>}
+                                        {inputs.characterImage && <button onClick={analyzeCharacterImage} className="text-xs text-purple-600 font-bold w-full text-center hover:underline bg-purple-50 py-1 rounded">✨ Phân tích ảnh ngay</button>}
                                     </div>
                                 </div>
-                                {characterAnalysis && <div className="mt-4 p-3 bg-green-50 text-green-800 rounded-lg text-xs font-mono border border-green-100">{characterAnalysis}</div>}
+                                {characterAnalysis && <div className="mt-4 p-3 bg-purple-50 text-purple-800 rounded-lg text-xs font-mono border border-purple-100">{characterAnalysis}</div>}
                             </div>
                         )}
 
-                        {/* Collapsible Config Card - Redesigned */}
-                        <div className="glass-card bg-white transition-all duration-300 relative overflow-hidden shadow-sm border border-gray-200 rounded-2xl">
+                        {/* Collapsible Config Card - Christmas Style */}
+                        <div className="glass-card bg-white transition-all duration-300 relative overflow-hidden shadow-sm border border-red-100 rounded-2xl">
                             
                             {/* Decorative Corner Ribbon */}
-                            <div className="absolute -top-3 -right-12 bg-red-600 text-white text-[10px] font-bold px-10 py-1 rotate-45 shadow-md z-10 hidden md:block">
-                                AI POWERED
+                            <div className="absolute -top-3 -right-12 bg-red-600 text-white text-[10px] font-bold px-10 py-1 rotate-45 shadow-md z-10 hidden md:block border-b border-white/20">
+                                MERRY XMAS
                             </div>
 
                             <div className="p-6">
-                                {/* Header Collapse Trigger */}
                                 <div className="flex justify-between items-center mb-6 cursor-pointer select-none" onClick={() => setIsConfigCollapsed(!isConfigCollapsed)}>
                                     <div className="flex items-center gap-2">
                                         <div className="w-1 h-6 bg-red-500 rounded-full"></div>
-                                        <h3 className="text-lg font-bold text-gray-800">CẤU HÌNH KỊCH BẢN</h3>
+                                        <h3 className="text-lg font-bold text-red-800">CẤU HÌNH KỊCH BẢN</h3>
                                     </div>
-                                    <div className={`p-2 rounded-full bg-gray-50 hover:bg-gray-100 transition-transform duration-300 ${isConfigCollapsed ? 'rotate-180' : ''}`}>
-                                        <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7"></path></svg>
+                                    <div className={`p-2 rounded-full bg-red-50 hover:bg-red-100 transition-transform duration-300 ${isConfigCollapsed ? 'rotate-180' : ''}`}>
+                                        <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7"></path></svg>
                                     </div>
                                 </div>
 
@@ -631,7 +626,6 @@ const App: React.FC = () => {
                                     
                                     {/* GRID ROW 1: Inputs */}
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                        {/* Basic Idea */}
                                         <div className="flex flex-col h-full">
                                             <div className="flex justify-between mb-2 items-center">
                                                 <label className="text-xs font-extrabold text-gray-600 uppercase flex items-center gap-1">
@@ -647,7 +641,6 @@ const App: React.FC = () => {
                                             />
                                         </div>
 
-                                        {/* Detailed Idea / AI Suggestion */}
                                         <div className="flex flex-col h-full">
                                             <div className="flex justify-between mb-2 items-center">
                                                 <label className="text-xs font-extrabold text-gray-600 uppercase flex items-center gap-1">
@@ -713,7 +706,7 @@ const App: React.FC = () => {
                                     </div>
 
                                     {/* GRID ROW 3: Sliders (Duration & Speed) */}
-                                    <div className="bg-red-50/50 border border-red-100 rounded-2xl p-6 flex flex-col md:flex-row gap-8 items-stretch relative overflow-hidden">
+                                    <div className="bg-gradient-to-br from-red-50 to-white border border-red-100 rounded-2xl p-6 flex flex-col md:flex-row gap-8 items-stretch relative overflow-hidden shadow-inner">
                                         <div className="absolute right-0 top-0 opacity-5 pointer-events-none">
                                             <ClockIcon className="w-64 h-64 text-red-900" />
                                         </div>
@@ -746,7 +739,7 @@ const App: React.FC = () => {
                                                 min="8" max="600" step="8" 
                                                 value={inputs.duration} 
                                                 onChange={e => handleInputChange('duration', parseInt(e.target.value))} 
-                                                className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-red-500"
+                                                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-red-600"
                                             />
                                         </div>
 
@@ -771,7 +764,7 @@ const App: React.FC = () => {
                                                 />
                                             </div>
 
-                                            <div className="flex justify-between items-center bg-white/60 p-2 rounded-lg border border-green-50">
+                                            <div className="flex justify-between items-center bg-white/60 p-2 rounded-lg border border-green-50 shadow-sm">
                                                 <span className="text-[10px] text-gray-500">Thời lượng 1 shot:</span>
                                                 <span className="text-sm font-black text-red-500">{shotDuration.toFixed(2)}s</span>
                                                 <div className="text-center">
@@ -783,14 +776,14 @@ const App: React.FC = () => {
                                     </div>
 
                                     {/* Generate Button */}
-                                    <button onClick={generatePrompts} disabled={isLoading} className="w-full bg-[#E08E8E] hover:bg-[#d67c7c] text-white font-extrabold text-sm py-4 rounded-xl shadow-lg hover:shadow-xl transition-all transform active:scale-[0.99] flex justify-center items-center gap-2 border-b-4 border-[#c57272]">
+                                    <button onClick={generatePrompts} disabled={isLoading} className="w-full bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white font-extrabold text-sm py-4 rounded-xl shadow-lg hover:shadow-xl transition-all transform active:scale-[0.99] flex justify-center items-center gap-2 border border-red-300">
                                         <span>TẠO {totalPrompts} PROMPTS NGAY 🎁</span>
                                     </button>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Results Table - Clean & Minimal */}
+                        {/* Results Table */}
                         {generatedPrompts.length > 0 && (
                             <div className="glass-card overflow-hidden bg-white animate-fade-in-up mb-24 border border-gray-100 shadow-lg">
                                 <div className="p-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
@@ -808,8 +801,8 @@ const App: React.FC = () => {
                                         </thead>
                                         <tbody className="divide-y divide-gray-50">
                                             {generatedPrompts.map(p => (
-                                                <tr key={p.id} className="hover:bg-blue-50/30 transition group">
-                                                    <td className="px-6 py-4 font-mono text-xs text-gray-400 font-bold group-hover:text-blue-500">{p.id}</td>
+                                                <tr key={p.id} className="hover:bg-red-50 transition group">
+                                                    <td className="px-6 py-4 font-mono text-xs text-gray-400 font-bold group-hover:text-red-500">{p.id}</td>
                                                     <td className="px-6 py-4 text-xs text-gray-600 leading-relaxed font-medium">{p.prompt_text}</td>
                                                     <td className="px-6 py-4 text-center">
                                                         {p.is_subject_lock ? <span className="inline-flex items-center px-2 py-1 rounded text-[9px] font-bold bg-green-100 text-green-700">LOCK</span> : <span className="text-gray-200 text-xs font-bold">-</span>}
@@ -825,7 +818,7 @@ const App: React.FC = () => {
                         {/* Floating Download Button */}
                         {generatedPrompts.length > 0 && (
                             <div className="fixed bottom-8 right-8 z-40 floating-enter">
-                                <button onClick={downloadExcel} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-full shadow-2xl hover:shadow-indigo-500/30 hover:-translate-y-1 transition-all flex items-center gap-3 border-2 border-white/20 backdrop-blur-md">
+                                <button onClick={downloadExcel} className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-full shadow-2xl hover:shadow-green-500/30 hover:-translate-y-1 transition-all flex items-center gap-3 border-2 border-white/20 backdrop-blur-md">
                                     <DownloadIcon className="w-5 h-5" />
                                     <span>Tải File Excel</span>
                                 </button>

@@ -229,7 +229,6 @@ const Tracker: React.FC = () => {
         }
     };
     
-    // NEW: Reset Single Job
     const handleResetJob = async (job: VideoJob) => {
         const activeFile = files[activeFileIndex];
         if (!activeFile || !ipcRenderer || !activeFile.path) return;
@@ -315,7 +314,6 @@ const Tracker: React.FC = () => {
     // --- Render ---
     const activeFile = files[activeFileIndex];
     
-    // File Specific Stats
     const fileTotal = activeFile ? activeFile.jobs.length : 0;
     const fileCompleted = activeFile ? activeFile.jobs.filter(j => j.status === 'Completed').length : 0;
     const fileProcessing = activeFile ? activeFile.jobs.filter(j => j.status === 'Processing' || j.status === 'Generating').length : 0;
@@ -325,15 +323,15 @@ const Tracker: React.FC = () => {
 
     if (files.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center h-[60vh] text-center p-10 bg-white/30 rounded-3xl border-2 border-dashed border-gray-300">
+            <div className="flex flex-col items-center justify-center h-[60vh] text-center p-10 bg-white/50 rounded-3xl border-2 border-dashed border-gray-300">
                 <FolderIcon className="w-20 h-20 text-gray-300 mb-6" />
                 <h3 className="text-2xl font-bold text-gray-500 mb-2">Chưa theo dõi dự án nào</h3>
                 <p className="text-gray-400 mb-8 max-w-md">Hãy mở file Excel kịch bản hoặc quét thư mục dự án để bắt đầu quy trình tự động hóa.</p>
                 <div className="flex gap-4">
-                    <button onClick={handleOpenFile} className="btn-primary px-8 py-4 rounded-2xl font-bold text-lg shadow-xl hover:scale-105 transition flex items-center gap-3">
+                    <button onClick={handleOpenFile} className="btn-primary px-8 py-4 rounded-2xl font-bold text-lg shadow-xl hover:scale-105 transition flex items-center gap-3 bg-red-600 hover:bg-red-700">
                         <FolderIcon className="w-6 h-6"/> Mở File Excel
                     </button>
-                    <button onClick={handleScanFolder} className="bg-white text-indigo-600 border-2 border-indigo-100 px-8 py-4 rounded-2xl font-bold text-lg shadow-md hover:bg-indigo-50 transition flex items-center gap-3">
+                    <button onClick={handleScanFolder} className="bg-white text-green-700 border-2 border-green-100 px-8 py-4 rounded-2xl font-bold text-lg shadow-md hover:bg-green-50 transition flex items-center gap-3">
                         <SearchIcon className="w-6 h-6"/> Quét Thư Mục
                     </button>
                 </div>
@@ -344,12 +342,12 @@ const Tracker: React.FC = () => {
     return (
         <div className="flex flex-col h-[calc(100vh-100px)]">
             
-            {/* Global Top Bar (Simplified) */}
-            <div className="bg-white/70 backdrop-blur-md rounded-2xl p-3 mb-4 flex items-center justify-between shadow-sm border border-white/50">
+            {/* Global Top Bar */}
+            <div className="bg-white/80 backdrop-blur-md rounded-2xl p-3 mb-4 flex items-center justify-between shadow-sm border border-green-100">
                  <div className="flex items-center gap-6 px-4">
                     <div className="flex flex-col">
                         <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Tổng Files</span>
-                        <span className="text-xl font-extrabold text-gray-800 leading-none">{totalFiles}</span>
+                        <span className="text-xl font-extrabold text-red-700 leading-none">{totalFiles}</span>
                     </div>
                     <div className="h-8 w-px bg-gray-200"></div>
                      <div className="flex flex-col w-48">
@@ -357,9 +355,9 @@ const Tracker: React.FC = () => {
                              <span>GLOBAL PROGRESS</span>
                              <span className={globalPercent===100?'text-green-600':''}>{globalPercent}%</span>
                          </div>
-                         <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                         <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
                              <div 
-                                className={`h-full rounded-full transition-all duration-700 ease-out ${globalPercent === 100 ? 'bg-green-500' : 'bg-gradient-to-r from-indigo-500 to-purple-500'}`} 
+                                className={`h-full rounded-full transition-all duration-700 ease-out ${globalPercent === 100 ? 'bg-green-500' : 'bg-gradient-to-r from-red-500 to-green-500'}`} 
                                 style={{ width: `${globalPercent}%` }}
                             ></div>
                          </div>
@@ -367,14 +365,14 @@ const Tracker: React.FC = () => {
                  </div>
 
                  <div className="flex items-center gap-2">
-                     <button onClick={handleOpenFile} className="p-2.5 rounded-xl bg-gray-50 text-gray-600 hover:bg-white hover:text-indigo-600 hover:shadow-md transition" title="Mở thêm file"><FolderIcon className="w-5 h-5" /></button>
-                     <button onClick={handleScanFolder} className="p-2.5 rounded-xl bg-gray-50 text-gray-600 hover:bg-white hover:text-indigo-600 hover:shadow-md transition" title="Quét thư mục"><SearchIcon className="w-5 h-5" /></button>
-                     <button onClick={handleClearAll} className="p-2.5 rounded-xl bg-gray-50 text-gray-600 hover:bg-white hover:text-red-500 hover:shadow-md transition" title="Xóa tất cả"><TrashIcon className="w-5 h-5" /></button>
+                     <button onClick={handleOpenFile} className="p-2.5 rounded-xl bg-red-50 text-red-600 hover:bg-red-600 hover:text-white hover:shadow-md transition" title="Mở thêm file"><FolderIcon className="w-5 h-5" /></button>
+                     <button onClick={handleScanFolder} className="p-2.5 rounded-xl bg-green-50 text-green-600 hover:bg-green-600 hover:text-white hover:shadow-md transition" title="Quét thư mục"><SearchIcon className="w-5 h-5" /></button>
+                     <button onClick={handleClearAll} className="p-2.5 rounded-xl bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-red-500 hover:shadow-md transition" title="Xóa tất cả"><TrashIcon className="w-5 h-5" /></button>
                      <div className="h-6 w-px bg-gray-200 mx-2"></div>
-                     <button onClick={handleOpenToolFlow} className="bg-gray-800 text-white px-4 py-2.5 rounded-xl font-bold text-xs hover:bg-gray-700 flex items-center gap-2 shadow-lg transition transform hover:-translate-y-0.5">
+                     <button onClick={handleOpenToolFlow} className="bg-gray-800 text-white px-4 py-2.5 rounded-xl font-bold text-xs hover:bg-gray-700 flex items-center gap-2 shadow-lg transition transform hover:-translate-y-0.5 border border-gray-600">
                         <ExternalLinkIcon className="w-3 h-3"/> ToolFlows
                     </button>
-                    <button onClick={() => ipcRenderer.invoke('set-tool-flow-path')} className="p-2.5 text-gray-400 hover:text-indigo-600 hover:bg-white rounded-xl transition"><CogIcon className="w-5 h-5"/></button>
+                    <button onClick={() => ipcRenderer.invoke('set-tool-flow-path')} className="p-2.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-xl transition"><CogIcon className="w-5 h-5"/></button>
                  </div>
             </div>
 
@@ -396,13 +394,13 @@ const Tracker: React.FC = () => {
                                 className={`
                                     relative p-3 rounded-xl cursor-pointer transition-all duration-200 border group
                                     ${isActive 
-                                        ? 'bg-white border-indigo-100 shadow-md z-10' 
-                                        : 'bg-white/40 border-transparent hover:bg-white/60'
+                                        ? 'bg-white border-red-200 shadow-md z-10 ring-1 ring-red-100' 
+                                        : 'bg-white/60 border-transparent hover:bg-white/80'
                                     }
                                 `}
                             >
                                 <div className="flex justify-between items-start mb-2">
-                                    <div className={`font-bold text-sm truncate pr-2 ${isActive ? 'text-gray-800' : 'text-gray-500'}`} title={f.name}>{f.name}</div>
+                                    <div className={`font-bold text-sm truncate pr-2 ${isActive ? 'text-red-800' : 'text-gray-500'}`} title={f.name}>{f.name}</div>
                                     <button 
                                         onClick={(e) => handleCloseFile(idx, e)}
                                         className="text-gray-300 hover:text-red-500 p-0.5 rounded-full hover:bg-red-50 transition opacity-0 group-hover:opacity-100"
@@ -410,9 +408,9 @@ const Tracker: React.FC = () => {
                                         <TrashIcon className="w-3 h-3" />
                                     </button>
                                 </div>
-                                <div className="w-full bg-gray-100 rounded-full h-1 overflow-hidden">
+                                <div className="w-full bg-gray-200 rounded-full h-1 overflow-hidden">
                                     <div 
-                                        className={`h-full rounded-full transition-all duration-500 ${percent === 100 ? 'bg-green-500' : 'bg-indigo-400'}`} 
+                                        className={`h-full rounded-full transition-all duration-500 ${percent === 100 ? 'bg-green-500' : 'bg-red-400'}`} 
                                         style={{ width: `${percent}%` }}
                                     />
                                 </div>
@@ -425,28 +423,28 @@ const Tracker: React.FC = () => {
                 <div className="flex-1 flex flex-col gap-4 overflow-hidden">
                     {activeFile ? (
                         <>
-                            {/* Detailed Header & Toolbar Combined */}
-                            <div className="bg-white/60 backdrop-blur-md p-1 rounded-2xl border border-white/60 shadow-sm flex flex-col gap-1">
+                            {/* Detailed Header & Toolbar */}
+                            <div className="bg-white/70 backdrop-blur-md p-1 rounded-2xl border border-white/60 shadow-sm flex flex-col gap-1">
                                 {/* Stats Row */}
                                 <div className="flex items-center p-3 gap-4">
                                     <div className="flex-1 min-w-0">
                                         <h2 className="text-lg font-extrabold text-gray-800 truncate" title={activeFile.name}>{activeFile.name}</h2>
-                                        <p className="text-[10px] text-gray-400 font-mono mt-0.5 truncate cursor-pointer hover:text-indigo-600" onClick={copyFolderPath}>{activeFile.path}</p>
+                                        <p className="text-[10px] text-gray-400 font-mono mt-0.5 truncate cursor-pointer hover:text-red-600" onClick={copyFolderPath}>{activeFile.path}</p>
                                     </div>
                                     
-                                    {/* Stats Cards - Gradient Style */}
+                                    {/* Stats Cards - Christmas Theme */}
                                     <div className="flex gap-3">
-                                        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 px-4 py-2 rounded-xl border border-indigo-100 min-w-[100px]">
-                                            <div className="text-[9px] font-bold text-indigo-400 uppercase tracking-wide mb-1">Tổng Job</div>
-                                            <div className="text-xl font-black text-indigo-600 leading-none">{fileTotal}</div>
+                                        <div className="bg-red-50 px-4 py-2 rounded-xl border border-red-100 min-w-[100px]">
+                                            <div className="text-[9px] font-bold text-red-400 uppercase tracking-wide mb-1">Tổng Job</div>
+                                            <div className="text-xl font-black text-red-600 leading-none">{fileTotal}</div>
                                         </div>
-                                        <div className="bg-gradient-to-br from-green-50 to-emerald-50 px-4 py-2 rounded-xl border border-green-100 min-w-[100px]">
+                                        <div className="bg-green-50 px-4 py-2 rounded-xl border border-green-100 min-w-[100px]">
                                             <div className="text-[9px] font-bold text-green-500 uppercase tracking-wide mb-1">Hoàn thành</div>
                                             <div className="text-xl font-black text-green-600 leading-none">{fileCompleted}</div>
                                         </div>
-                                        <div className="bg-gradient-to-br from-orange-50 to-yellow-50 px-4 py-2 rounded-xl border border-orange-100 min-w-[100px]">
-                                            <div className="text-[9px] font-bold text-orange-400 uppercase tracking-wide mb-1">Đang xử lý</div>
-                                            <div className="text-xl font-black text-orange-500 leading-none">{fileProcessing}</div>
+                                        <div className="bg-yellow-50 px-4 py-2 rounded-xl border border-yellow-100 min-w-[100px]">
+                                            <div className="text-[9px] font-bold text-yellow-600 uppercase tracking-wide mb-1">Đang xử lý</div>
+                                            <div className="text-xl font-black text-yellow-600 leading-none">{fileProcessing}</div>
                                         </div>
                                         <div className="pl-4 border-l border-gray-200 flex flex-col justify-center items-end min-w-[60px]">
                                             <div className="text-2xl font-black text-gray-700">{filePercent}<span className="text-sm text-gray-400">%</span></div>
@@ -458,14 +456,14 @@ const Tracker: React.FC = () => {
                                 <div className="bg-white/50 rounded-xl px-4 py-2 flex items-center justify-between">
                                     <div className="flex items-center gap-4 text-xs font-bold text-gray-500">
                                         <span className="uppercase tracking-wider text-[10px]">Ghép Video:</span>
-                                        <label className="flex items-center gap-1.5 cursor-pointer hover:text-indigo-600 transition"><input type="radio" name="combine" checked={combineMode==='normal'} onChange={()=>setCombineMode('normal')} className="accent-indigo-600 w-3 h-3"/> Nối thường</label>
-                                        <label className="flex items-center gap-1.5 cursor-pointer hover:text-indigo-600 transition"><input type="radio" name="combine" checked={combineMode==='timed'} onChange={()=>setCombineMode('timed')} className="accent-indigo-600 w-3 h-3"/> Theo thời gian</label>
+                                        <label className="flex items-center gap-1.5 cursor-pointer hover:text-red-600 transition"><input type="radio" name="combine" checked={combineMode==='normal'} onChange={()=>setCombineMode('normal')} className="accent-red-600 w-3 h-3"/> Nối thường</label>
+                                        <label className="flex items-center gap-1.5 cursor-pointer hover:text-red-600 transition"><input type="radio" name="combine" checked={combineMode==='timed'} onChange={()=>setCombineMode('timed')} className="accent-red-600 w-3 h-3"/> Theo thời gian</label>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <button onClick={handleCombine} className="px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-indigo-600 text-xs font-bold shadow-sm hover:shadow hover:text-indigo-700 transition">Ghép File Này</button>
-                                        <button onClick={handleCombineAll} className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white border border-transparent text-xs font-bold shadow-sm hover:bg-indigo-700 transition">Ghép Tất Cả</button>
+                                        <button onClick={handleCombine} className="px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-red-600 text-xs font-bold shadow-sm hover:shadow hover:text-red-700 transition">Ghép File Này</button>
+                                        <button onClick={handleCombineAll} className="px-3 py-1.5 rounded-lg bg-red-600 text-white border border-transparent text-xs font-bold shadow-sm hover:bg-red-700 transition">Ghép Tất Cả</button>
                                         <div className="h-4 w-px bg-gray-300 mx-2"></div>
-                                        <button onClick={handleRefresh} className="p-1.5 rounded-lg text-gray-400 hover:bg-white hover:text-indigo-600 transition" title="Làm mới"><LinkIcon className="w-4 h-4"/></button>
+                                        <button onClick={handleRefresh} className="p-1.5 rounded-lg text-gray-400 hover:bg-white hover:text-green-600 transition" title="Làm mới"><LinkIcon className="w-4 h-4"/></button>
                                         <button onClick={handleRetryStuck} className="p-1.5 rounded-lg text-gray-400 hover:bg-white hover:text-orange-500 transition" title="Sửa lỗi kẹt"><RetryIcon className="w-4 h-4"/></button>
                                     </div>
                                 </div>
@@ -487,7 +485,7 @@ const Tracker: React.FC = () => {
                                             {activeFile.jobs.map((job, jIdx) => (
                                                 <tr key={job.id + jIdx} className="hover:bg-white/50 transition group">
                                                     <td className="px-6 py-4 align-top pt-6">
-                                                        <div className="font-mono font-bold text-gray-400 text-xs group-hover:text-indigo-500 transition">{job.id}</div>
+                                                        <div className="font-mono font-bold text-gray-400 text-xs group-hover:text-red-500 transition">{job.id}</div>
                                                         <div className="text-[9px] text-gray-300 mt-1 line-clamp-2 w-20 group-hover:text-gray-400 transition" title={job.prompt}>
                                                             {job.prompt}
                                                         </div>
@@ -524,10 +522,9 @@ const Tracker: React.FC = () => {
                                                     </td>
                                                     <td className="px-6 py-4 align-middle">
                                                         <div className="flex justify-end items-center gap-2">
-                                                            {/* Reset Button */}
                                                             <button 
                                                                 onClick={() => handleResetJob(job)} 
-                                                                className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-50 text-gray-400 hover:bg-indigo-500 hover:text-white transition-all duration-200 shadow-sm hover:shadow-md border border-gray-100" 
+                                                                className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-50 text-gray-400 hover:bg-red-500 hover:text-white transition-all duration-200 shadow-sm hover:shadow-md border border-gray-100" 
                                                                 title="Tạo lại (Reset)"
                                                             >
                                                                 <RetryIcon className="w-4 h-4" />
@@ -540,7 +537,7 @@ const Tracker: React.FC = () => {
                                                                     <button onClick={() => handleVideoAction('delete', job)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all duration-200 shadow-sm hover:shadow-md border border-red-100" title="Xóa video"><TrashIcon className="w-4 h-4"/></button>
                                                                 </>
                                                             ) : (
-                                                                <div className="w-[120px]"></div> // Spacer
+                                                                <div className="w-[120px]"></div>
                                                             )}
                                                         </div>
                                                     </td>
@@ -563,9 +560,9 @@ const Tracker: React.FC = () => {
 
             {loading && (
                 <div className="fixed inset-0 bg-white/50 z-[100] flex items-center justify-center backdrop-blur-sm">
-                    <div className="bg-white p-6 rounded-2xl shadow-2xl flex flex-col items-center animate-bounce-in ring-1 ring-black/5">
+                    <div className="bg-white p-6 rounded-2xl shadow-2xl flex flex-col items-center animate-bounce-in ring-1 ring-red-100">
                         <LoaderIcon />
-                        <p className="mt-4 font-bold text-gray-700">Đang xử lý...</p>
+                        <p className="mt-4 font-bold text-red-700">Đang xử lý...</p>
                     </div>
                 </div>
             )}

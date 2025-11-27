@@ -7,87 +7,97 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Trọng - Tool Auto Flow</title>
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#4f46e5">
+    <meta name="theme-color" content="#D32F2F">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-start: #eef2ff;
-            --bg-end: #e0e7ff;
+            /* Christmas Theme Palette */
+            --bg-start: #f0f9ff; /* Icy Snow */
+            --bg-end: #e0f2fe;   /* Light Blue */
             --card-bg: #ffffff;
-            --text-primary: #1f2937;
-            --text-secondary: #4b5563;
-            --accent-start: #6366f1;
-            --accent-end: #4f46e5;
-            --shadow-color: rgba(79, 70, 229, 0.1);
+            --text-primary: #1e293b;
+            --text-secondary: #475569;
+            
+            /* Christmas Colors */
+            --christmas-red: #dc2626;
+            --christmas-green: #15803d;
+            --christmas-gold: #b45309;
+            
+            --shadow-color: rgba(220, 38, 38, 0.15); /* Red shadow */
         }
         body {
             font-family: 'Inter', sans-serif;
-            background-image: linear-gradient(135deg, var(--bg-start) 0%, var(--bg-end) 100%);
+            /* Subtle snowy gradient */
+            background-image: linear-gradient(180deg, #FFFFFF 0%, #F0F7FF 100%);
             color: var(--text-primary);
             min-height: 100vh;
             overflow: hidden;
         }
         
-        /* Modern Scrollbar */
+        /* Festive Scrollbar */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--christmas-red); }
         
         .glassmorphism {
-            background: rgba(255, 255, 255, 0.8);
+            background: rgba(255, 255, 255, 0.85);
             backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.6);
             box-shadow: 0 8px 32px 0 var(--shadow-color);
         }
         
         .glass-card {
             background: var(--card-bg);
             border-radius: 1.5rem;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
-            border: 1px solid rgba(229, 231, 235, 0.5);
+            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(220, 38, 38, 0.05);
+            border: 1px solid rgba(226, 232, 240, 0.8);
         }
 
         .btn-primary {
-            background-image: linear-gradient(to right, var(--accent-start) 0%, var(--accent-end) 100%);
+            /* Festive Red Gradient */
+            background-image: linear-gradient(to right, #ef4444 0%, #dc2626 100%);
             transition: all 0.3s ease;
-            box-shadow: 0 4px 15px 0 rgba(99, 102, 241, 0.3);
+            box-shadow: 0 4px 15px 0 rgba(220, 38, 38, 0.3);
             color: white;
+            border: 1px solid #b91c1c;
         }
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px 0 rgba(99, 102, 241, 0.4);
+            box-shadow: 0 8px 25px 0 rgba(220, 38, 38, 0.4);
+            filter: brightness(1.1);
         }
         
         .gradient-text {
-            background: linear-gradient(to right, var(--accent-start), var(--accent-end));
+            background: linear-gradient(to right, #dc2626, #15803d);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
-        /* Custom Range Slider */
+        /* Custom Range Slider (Festive Style) */
         input[type=range] {
             -webkit-appearance: none;
             width: 100%;
-            height: 6px;
-            background: #e5e7eb;
-            border-radius: 3px;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
             outline: none;
         }
         input[type=range]::-webkit-slider-thumb {
             -webkit-appearance: none;
-            width: 18px;
-            height: 18px;
-            background: var(--accent-end);
+            width: 20px;
+            height: 20px;
+            background: var(--christmas-green);
             border-radius: 50%;
             cursor: pointer;
             border: 2px solid #fff;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
             transition: transform 0.1s;
         }
         input[type=range]::-webkit-slider-thumb:hover {
-            transform: scale(1.1);
+            transform: scale(1.2);
+            background: #166534;
         }
 
         /* Loading Animation */
@@ -102,15 +112,18 @@
         .floating-enter { animation: slideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
         @keyframes slideUp { from { transform: translateY(100px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
-        /* Status Badges */
-        .status-badge { display: inline-flex; align-items: center; padding: 0.25em 0.6em; font-size: 0.7em; font-weight: 700; border-radius: 9999px; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.05em; }
-        
         .input-group {
             transition: all 0.2s;
         }
         .input-group:focus-within {
-            border-color: var(--accent-start);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+            border-color: var(--christmas-green);
+            box-shadow: 0 0 0 3px rgba(21, 128, 61, 0.1);
+        }
+        
+        /* Snowflakes (Optional decorative dots) */
+        .snow-bg {
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+            background-size: 40px 40px;
         }
     </style>
 <script type="importmap">
@@ -131,7 +144,7 @@
 </script>
 </head>
 <body>
-    <div id="root"></div>
+    <div id="root" class="snow-bg"></div>
     <script type="module" src="/index.tsx"></script>
     <script>
       if ('serviceWorker' in navigator && (window.location.protocol === 'http:' || window.location.protocol === 'https:')) {
