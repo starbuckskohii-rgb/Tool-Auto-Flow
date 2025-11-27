@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { TrackedFile, VideoJob } from '../types';
 import { 
@@ -558,11 +557,11 @@ const Tracker: React.FC = () => {
                                                         </span>
                                                     </td>
                                                     <td className="px-6 py-4">
-                                                        <div className="flex justify-end items-center gap-2">
-                                                            {/* Reset Button (Always visible or context aware) */}
+                                                        <div className="flex justify-end items-center gap-3">
+                                                            {/* Reset Button (Always visible) */}
                                                             <button 
                                                                 onClick={() => handleResetJob(job)} 
-                                                                className="w-8 h-8 flex items-center justify-center rounded-lg bg-indigo-50 text-indigo-500 hover:bg-indigo-100 hover:text-indigo-700 transition shadow-sm border border-indigo-100" 
+                                                                className="w-9 h-9 flex items-center justify-center rounded-xl bg-indigo-50 text-indigo-500 hover:bg-indigo-500 hover:text-white transition-all duration-200 shadow-sm hover:shadow-md border border-indigo-100" 
                                                                 title="Tạo lại (Reset)"
                                                             >
                                                                 <RetryIcon className="w-4 h-4" />
@@ -570,16 +569,16 @@ const Tracker: React.FC = () => {
 
                                                             {job.videoPath ? (
                                                                 <>
-                                                                    <button onClick={() => handleVideoAction('play', job)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-green-50 text-green-500 hover:bg-green-100 hover:text-green-700 transition shadow-sm border border-green-100" title="Xem video"><PlayIcon className="w-4 h-4"/></button>
-                                                                    <button onClick={() => handleVideoAction('folder', job)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-50 text-blue-500 hover:bg-blue-100 hover:text-blue-700 transition shadow-sm border border-blue-100" title="Mở thư mục"><FolderIcon className="w-4 h-4"/></button>
-                                                                    <button onClick={() => handleVideoAction('delete', job)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-700 transition shadow-sm border border-red-100" title="Xóa video"><TrashIcon className="w-4 h-4"/></button>
+                                                                    <button onClick={() => handleVideoAction('play', job)} className="w-9 h-9 flex items-center justify-center rounded-xl bg-green-50 text-green-500 hover:bg-green-500 hover:text-white transition-all duration-200 shadow-sm hover:shadow-md border border-green-100" title="Xem video"><PlayIcon className="w-4 h-4"/></button>
+                                                                    <button onClick={() => handleVideoAction('folder', job)} className="w-9 h-9 flex items-center justify-center rounded-xl bg-blue-50 text-blue-500 hover:bg-blue-500 hover:text-white transition-all duration-200 shadow-sm hover:shadow-md border border-blue-100" title="Mở thư mục"><FolderIcon className="w-4 h-4"/></button>
+                                                                    <button onClick={() => handleVideoAction('delete', job)} className="w-9 h-9 flex items-center justify-center rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all duration-200 shadow-sm hover:shadow-md border border-red-100" title="Xóa video"><TrashIcon className="w-4 h-4"/></button>
                                                                 </>
                                                             ) : (
-                                                                // Placeholders to keep spacing consistent
+                                                                // Placeholders
                                                                 <>
-                                                                    <div className="w-8 h-8"></div>
-                                                                    <div className="w-8 h-8"></div>
-                                                                    <div className="w-8 h-8"></div>
+                                                                    <div className="w-9 h-9"></div>
+                                                                    <div className="w-9 h-9"></div>
+                                                                    <div className="w-9 h-9"></div>
                                                                 </>
                                                             )}
                                                         </div>
