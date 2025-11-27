@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import * as XLSX from 'xlsx';
 import { TrackedFile, VideoJob } from '../types';
 import { 
@@ -281,22 +280,34 @@ const Tracker: React.FC = () => {
             {/* Global Top Bar */}
             <div className="bg-white/80 backdrop-blur-md rounded-2xl p-3 mb-4 flex items-center justify-between shadow-sm border border-green-100">
                  <div className="flex items-center gap-6 px-4">
-                    <div className="flex flex-col">
+                    {/* Total Files */}
+                    <div className="flex flex-col items-center">
                         <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Tổng Files</span>
-                        <span className="text-xl font-extrabold text-red-700 leading-none">{totalFiles}</span>
+                        <span className="text-2xl font-extrabold text-red-600 leading-none">{totalFiles}</span>
                     </div>
-                    <div className="h-8 w-px bg-gray-200"></div>
-                     <div className="flex flex-col w-64">
-                         <div className="flex justify-between items-center text-[10px] font-bold text-gray-400 mb-1">
-                             <div className="flex items-center gap-2">
-                                <span className="uppercase tracking-wide">Global Progress</span>
-                                <span className="bg-red-50 text-red-600 border border-red-100 px-2 py-0.5 rounded-md text-[9px] shadow-sm font-extrabold">{totalCompleted} / {totalJobs} Completed</span>
-                             </div>
-                             <span className={`text-xs font-black ${globalPercent===100?'text-green-600':'text-gray-600'}`}>{globalPercent}%</span>
+                    
+                    <div className="h-10 w-px bg-gray-200"></div>
+
+                    {/* Jobs Completed */}
+                    <div className="flex flex-col items-center">
+                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Jobs Hoàn Thành</span>
+                        <div className="flex items-baseline gap-1">
+                             <span className="text-2xl font-extrabold text-green-600 leading-none">{totalCompleted}</span>
+                             <span className="text-sm text-gray-400 font-bold">/ {totalJobs}</span>
+                        </div>
+                    </div>
+
+                    <div className="h-10 w-px bg-gray-200"></div>
+
+                     {/* Progress Bar */}
+                     <div className="flex flex-col justify-center min-w-[150px]">
+                         <div className="flex justify-between items-center mb-1">
+                             <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Tiến độ</span>
+                             <span className={`text-xs font-black ${globalPercent===100?'text-green-600':'text-gray-500'}`}>{globalPercent}%</span>
                          </div>
-                         <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden shadow-inner border border-gray-100">
+                         <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden shadow-inner border border-gray-100">
                              <div 
-                                className={`h-full rounded-full transition-all duration-700 ease-out ${globalPercent === 100 ? 'bg-green-500' : 'bg-gradient-to-r from-red-500 via-yellow-400 to-green-500'}`} 
+                                className={`h-full rounded-full transition-all duration-700 ease-out ${globalPercent === 100 ? 'bg-green-500' : 'bg-gradient-to-r from-blue-400 to-green-500'}`} 
                                 style={{ width: `${globalPercent}%` }}
                             ></div>
                          </div>
