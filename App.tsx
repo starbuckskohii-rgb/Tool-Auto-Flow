@@ -529,6 +529,34 @@ const App: React.FC = () => {
 
     return (
         <div className="min-h-screen relative">
+            {/* Update Available Modal - Uses updateAvailableModal, handleUpdateNow, handleUpdateLater */}
+            {updateAvailableModal && (
+                <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 text-center animate-bounce-in border-t-4 border-green-500 relative">
+                        <h3 className="text-xl font-extrabold text-gray-800 mb-2">🎁 Có bản cập nhật mới!</h3>
+                        <p className="text-sm text-gray-600 mb-6">
+                            Phiên bản <span className="font-bold text-green-600">v{updateAvailableModal.version}</span> đã sẵn sàng.
+                            <br/>Bạn có muốn cập nhật ngay để trải nghiệm tính năng mới?
+                        </p>
+                        <div className="flex gap-3 justify-center">
+                            <button onClick={handleUpdateLater} className="px-4 py-2 rounded-lg text-gray-500 font-bold hover:bg-gray-100 transition">Để sau</button>
+                            <button onClick={handleUpdateNow} className="px-6 py-2 rounded-lg bg-green-600 text-white font-bold shadow-lg hover:bg-green-700 hover:-translate-y-1 transition flex items-center gap-2">
+                                <DownloadIcon className="w-4 h-4"/> Cập nhật ngay
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Feedback Toast - Uses feedback, XCircleIcon */}
+            {feedback && (
+                <div className={`fixed top-24 right-4 z-[90] p-4 rounded-xl shadow-2xl border flex items-center gap-3 animate-fade-in-left ${feedback.type === 'error' ? 'bg-red-50 border-red-200 text-red-800' : 'bg-green-50 border-green-200 text-green-800'}`}>
+                    {feedback.type === 'error' ? <XCircleIcon className="w-6 h-6"/> : <span className="text-xl font-bold">✓</span>}
+                    <p className="text-sm font-bold">{feedback.message}</p>
+                    <button onClick={() => setFeedback(null)} className="ml-2 opacity-50 hover:opacity-100"><XCircleIcon className="w-4 h-4"/></button>
+                </div>
+            )}
+
             {showProgressModal && (
                 <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
                     <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-8 text-center animate-fade-in-up border-t-4 border-green-500">
