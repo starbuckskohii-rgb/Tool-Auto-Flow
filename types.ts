@@ -1,5 +1,4 @@
 
-
 export type ActiveTab = 'generator' | 'tracker';
 export type GeneratorTab = 'jesus' | 'trending' | 'seasonal' | 'looping' | 'cafe' | 'starbucks' | 'concert' | 'stage';
 export type JobStatus = 'Pending' | 'Processing' | 'Generating' | 'Completed' | 'Failed';
@@ -22,6 +21,8 @@ export interface GeneratorInputs {
     style: string;
     market: string;
     duration: number;
+    speed: number;
+    mode: string;
     month: string;
     loopType: 'person' | 'nature';
     characterDesc: string;

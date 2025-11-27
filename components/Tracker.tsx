@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { TrackedFile, VideoJob } from '../types';
@@ -10,9 +11,7 @@ import {
   ExternalLinkIcon, 
   CogIcon,
   SearchIcon,
-  LinkIcon,
-  CheckIcon,
-  ChartIcon
+  LinkIcon
 } from './Icons';
 
 const isElectron = navigator.userAgent.toLowerCase().includes('electron');

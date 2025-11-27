@@ -11,7 +11,11 @@ import * as XLSX from 'xlsx';
 import CryptoJS from 'crypto-js';
 import { ActiveTab, GeneratorTab, PromptItem, GeneratorInputs, ApiKey, AppConfig } from './types';
 import { ideaMatrix, criticalRules, cinematicQualityRule, religiousGuardrails, MARKETS } from './constants';
-import { LoaderIcon, KeyIcon, TrashIcon, CogIcon, InfoIcon, DownloadIcon, XCircleIcon } from './components/Icons';
+import { 
+    LoaderIcon, KeyIcon, TrashIcon, CogIcon, InfoIcon, DownloadIcon, XCircleIcon,
+    FlameIcon, CalendarIcon, LoopIcon, CoffeeIcon, MicIcon, StageIcon,
+    SparklesIcon, ClockIcon, LightningIcon, UserIcon, MountainIcon, UploadIcon
+} from './components/Icons';
 import Tracker from './components/Tracker';
 
 const isElectron = navigator.userAgent.toLowerCase().includes('electron');
@@ -94,24 +98,27 @@ const App: React.FC = () => {
     const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
     const [activeApiKey, setActiveApiKey] = useState<ApiKey | null>(null);
     const [configLoaded, setConfigLoaded] = useState(false);
-    const [activeTab, setActiveTab] = useState<ActiveTab>('generator');
+    const [activeTab, setActiveTab] = useState<ActiveTab>('tracker');
     const [appVersion, setAppVersion] = useState('');
     const [updateStatus, setUpdateStatus] = useState<string>('');
     
     // Update Logic States
-    const [updateAvailableModal, setUpdateAvailableModal] = useState<any>(null); // Stores update info
+    const [updateAvailableModal, setUpdateAvailableModal] = useState<any>(null);
     const [showProgressModal, setShowProgressModal] = useState(false);
     const [downloadProgress, setDownloadProgress] = useState(0);
     const [isDownloadingImmediate, setIsDownloadingImmediate] = useState(false);
 
     // --- Generator State ---
     const [genTab, setGenTab] = useState<GeneratorTab>('jesus');
+    const [isConfigCollapsed, setIsConfigCollapsed] = useState(false); 
     const [inputs, setInputs] = useState<GeneratorInputs>({
         basicIdea: '',
         detailedIdea: '',
         style: 'Narrative (Kể chuyện)',
         market: 'Brazil (Nam Mỹ)',
         duration: 200,
+        speed: 1.0,
+        mode: 'character',
         month: '11',
         loopType: 'person',
         characterDesc: '',
@@ -132,18 +139,26 @@ const App: React.FC = () => {
         return CryptoJS.AES.encrypt(text, CryptoJS.SHA256(machineId + SECRET_KEY).toString()).toString();
     }, [machineId, SECRET_KEY]);
 
+    const shotDuration = 8 / inputs.speed;
+    const totalPrompts = Math.ceil(inputs.duration / shotDuration);
+
+    const cleanJsonOutput = (text: string) => {
+        let clean = text.trim();
+        // Remove markdown code blocks if present
+        clean = clean.replace(/^```json\s*/i, '').replace(/\s*```$/, '');
+        clean = clean.replace(/^```\s*/, '').replace(/\s*```$/, '');
+        return clean;
+    };
+
     // --- Initialization ---
     useEffect(() => {
         if (isElectron && ipcRenderer) {
             ipcRenderer.invoke('get-app-config').then((config: AppConfig) => {
                 const mid = config.machineId || '';
                 setMachineId(mid);
-                
-                // Validate license (Simplified logic to fix unused variable error)
                 const hasLicense = !!config.licenseKey;
                 setIsActivated(hasLicense); 
 
-                // Load Keys
                 if (config.apiKeysEncrypted) {
                     try {
                         const bytes = CryptoJS.AES.decrypt(config.apiKeysEncrypted, CryptoJS.SHA256(mid + SECRET_KEY).toString());
@@ -155,10 +170,8 @@ const App: React.FC = () => {
                 setConfigLoaded(true);
             });
             
-            // Get Version
             ipcRenderer.invoke('get-app-version').then((v: string) => setAppVersion(v));
 
-            // Listen for update status
             const updateStatusListener = (_: any, status: string, errorMsg?: string) => {
                 setUpdateStatus(status);
                 if (status === 'not-available') alert('Bạn đang sử dụng phiên bản mới nhất.');
@@ -175,11 +188,7 @@ const App: React.FC = () => {
 
             const updateDownloadedListener = () => {
                 if (isDownloadingImmediate) {
-                    // Automatically quit and install if user chose "Update Now"
                     ipcRenderer.invoke('quit-and-install');
-                } else {
-                    // For silent update, just close the progress (if visible) or do nothing
-                    // It will install on next quit
                 }
             };
 
@@ -200,7 +209,6 @@ const App: React.FC = () => {
             setIsActivated(true);
             setConfigLoaded(true);
             setAppVersion('1.0.0-dev');
-            // Mock key for dev
             if(process.env.API_KEY) setApiKeys([{id: '1', name: 'Dev Key', value: process.env.API_KEY || ''}]);
         }
     }, [SECRET_KEY, isDownloadingImmediate]);
@@ -218,7 +226,6 @@ const App: React.FC = () => {
         }
     };
 
-    // Update Action Handlers
     const handleUpdateNow = () => {
         if (isElectron && ipcRenderer) {
             setIsDownloadingImmediate(true);
@@ -232,7 +239,6 @@ const App: React.FC = () => {
         if (isElectron && ipcRenderer) {
             setIsDownloadingImmediate(false);
             setUpdateAvailableModal(null);
-            // Trigger download silently in background
             ipcRenderer.invoke('start-download-update');
         }
     };
@@ -250,7 +256,7 @@ const App: React.FC = () => {
             reader.onloadend = () => {
                 const base64 = (reader.result as string).split(',')[1];
                 setInputs(prev => ({ ...prev, characterImage: { base64, mimeType: file.type } }));
-                setCharacterAnalysis(''); // Reset analysis when new image loaded
+                setCharacterAnalysis('');
             };
             reader.readAsDataURL(file);
         }
@@ -262,26 +268,11 @@ const App: React.FC = () => {
         setIsLoading(true);
         try {
             const ai = new GoogleGenAI({ apiKey: activeApiKey.value });
-            
             const prompt = "Create a detailed, single-sentence description for a photorealistic depiction of the person in this image. Start with their gender and role (e.g., 'the male vocalist'). Include key features like hair, face, clothing, and build. This will be used to ensure character consistency. Example: 'the male vocalist with a bald head, round face, expressive eyes, a mole on his cheek, wearing a light blue dress shirt, a dark suit jacket, and a striped tie, with a robust build.'";
-            
             const result = await ai.models.generateContent({
                 model: GENERATOR_MODEL,
-                contents: [
-                    {
-                        parts: [
-                            { text: prompt },
-                            {
-                                inlineData: {
-                                    mimeType: inputs.characterImage.mimeType,
-                                    data: inputs.characterImage.base64
-                                }
-                            }
-                        ]
-                    }
-                ]
+                contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType: inputs.characterImage.mimeType, data: inputs.characterImage.base64 } }] }]
             });
-            
             const text = result.text || '';
             setCharacterAnalysis(text.trim());
             setInputs(prev => ({ ...prev, characterDesc: text.trim() }));
@@ -300,12 +291,8 @@ const App: React.FC = () => {
 
         try {
             const ai = new GoogleGenAI({ apiKey: activeApiKey.value });
-            
-            // Simplified prompt structure based on user request
             let extraInstruction = "";
-            if (genTab === 'starbucks') {
-                extraInstruction = "Tập trung vào không gian quán Starbucks, chi tiết ly cà phê có logo, barista pha chế, và sản phẩm mới.";
-            }
+            if (genTab === 'starbucks') extraInstruction = "Tập trung vào không gian quán Starbucks, chi tiết ly cà phê có logo, barista pha chế, và sản phẩm mới.";
 
             const basePrompt = `Bạn là một đạo diễn sáng tạo. Dựa trên ý tưởng cơ bản: "${inputs.basicIdea || 'Chủ đề video'}", hãy phân tích và đưa ra gợi ý ngắn gọn.
             ${extraInstruction}
@@ -335,7 +322,6 @@ const App: React.FC = () => {
 
     const generatePrompts = async () => {
         if (!activeApiKey) return setFeedback({type: 'error', message: 'Vui lòng chọn API Key'});
-        const quantity = Math.ceil(inputs.duration / 8);
         if (!inputs.detailedIdea && !inputs.basicIdea) return setFeedback({type: 'error', message: 'Vui lòng nhập ý tưởng'});
         
         setIsLoading(true);
@@ -345,46 +331,57 @@ const App: React.FC = () => {
 
         try {
             const ai = new GoogleGenAI({ apiKey: activeApiKey.value });
-            
             const matrixKey = genTab === 'seasonal' ? 'trending' : (genTab === 'stage' ? 'stage' : genTab);
             const matrix = ideaMatrix[matrixKey] || ideaMatrix['trending'];
             const batchSize = 20;
             const allPrompts: PromptItem[] = [];
             const ideaToUse = inputs.detailedIdea || inputs.basicIdea;
 
-            // Character rule with Market Logic
+            const marketInstruction = `TARGET MARKET CONTEXT: The target audience is ${inputs.market}. Ensure the cast's ethnicity, clothing style, and environment reflect the demographics of ${inputs.market} naturally.`;
+
             let charRule = '';
             let useSubjectLock = false;
             let brandRule = '';
-            
-            // Base ethnicity instruction
-            const marketInstruction = `TARGET MARKET CONTEXT: The target audience is ${inputs.market}. Ensure the cast's ethnicity, clothing style, and environment reflect the demographics of ${inputs.market} naturally.`;
 
-            if (genTab === 'concert' || genTab === 'stage') {
+            // --- ADVANCED CHARACTER LOGIC ---
+            if (genTab === 'jesus') {
+                // Hardcoded Jesus Character Injection
+                charRule = `
+                [CHARACTER REFERENCE - MANDATORY]
+                Every single prompt MUST explicitly describe Jesus to ensure consistency. 
+                Use this exact description: "Jesus, a Middle Eastern man in his 30s with shoulder-length brown hair, a beard, and kind eyes, wearing simple woven robes".
+                DO NOT use pronouns like "he" or "him" for the main character; repeat the description "Jesus, the man in robes..." in every scene.
+                For "is_subject_lock", mark 'true'.
+                `;
+                useSubjectLock = true;
+            } else if (genTab === 'concert' || genTab === 'stage') {
                 if (!inputs.characterDesc) throw new Error("Vui lòng thiết lập nhân vật cho Concert/Stage");
                 useSubjectLock = true;
-                charRule = `[CHARACTER REFERENCE - CRITICAL] Every prompt must start with: "${inputs.characterDesc}". (Ensure consistency). For "is_subject_lock", mark 'true' for all prompts containing this character.`;
+                charRule = `
+                [CHARACTER REFERENCE - CRITICAL] 
+                Every prompt must start with: "${inputs.characterDesc}". 
+                (Ensure consistency). For "is_subject_lock", mark 'true' for all prompts containing this character.
+                DO NOT use pronouns; repeat the visual description.
+                `;
             } else if (genTab === 'looping' || inputs.loopType === 'nature') {
                 charRule = "Do NOT include any specific main character. Focus on environment.";
+            } else if (inputs.mode === 'character') {
+                if (inputs.characterDesc) {
+                    charRule = `[CHARACTER REFERENCE] Include main character: "${inputs.characterDesc}"`;
+                } else {
+                    charRule = `Invent a main character fitting the ${inputs.market} demographic.`;
+                }
             } else {
-                 charRule = `Invent a main character fitting the ${inputs.market} demographic. You have creative freedom.`;
+                 charRule = `Mode is ${inputs.mode}. Adjust presence of characters accordingly (e.g. minimal for landscape/product).`;
             }
 
             if (genTab === 'starbucks') {
-                brandRule = `[STARBUCKS BRANDING MANDATORY]
-                1. Every prompt MUST explicitly describe a "Starbucks coffee shop setting" or "Starbucks cup with distinct green logo".
-                2. Show variety: Interior (cozy seating, bar), Exterior (signage), Products (Frappuccino, Latte, Pastries).
-                3. Focus on the 'Starbucks Experience': Connection, Warmth, Quality.`;
+                brandRule = `[STARBUCKS BRANDING MANDATORY] Every prompt MUST explicitly describe a "Starbucks coffee shop setting" or "Starbucks cup with distinct green logo". Show variety: Interior, Exterior, Products.`;
             }
 
-            // Guardrails
             let extraInstructions = "";
-            if (genTab === 'jesus' || genTab === 'seasonal') {
-                extraInstructions += religiousGuardrails;
-            }
+            if (genTab === 'jesus' || genTab === 'seasonal') extraInstructions += religiousGuardrails;
 
-            // Output format
-            // We use standard JSON array schema
             const responseSchema: Schema = {
                 type: Type.ARRAY,
                 items: {
@@ -398,10 +395,10 @@ const App: React.FC = () => {
                 }
             };
 
-            for (let i = 0; i < quantity; i += batchSize) {
-                const currentBatch = Math.min(batchSize, quantity - i);
+            for (let i = 0; i < totalPrompts; i += batchSize) {
+                const currentBatch = Math.min(batchSize, totalPrompts - i);
+                setLoadingText(`Đang tạo Batch ${Math.floor(i/batchSize) + 1}... (${allPrompts.length}/${totalPrompts})`);
                 
-                // Random constraints
                 let constraints = "\n\n**MANDATORY UNIQUE CONSTRAINTS (Do NOT deviate):**\n";
                 const getRandom = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
                 
@@ -421,6 +418,7 @@ const App: React.FC = () => {
                     ${genTab === 'seasonal' ? `Month: ${inputs.month}` : ''}
                     ${genTab !== 'concert' && genTab !== 'stage' ? marketInstruction : ''}
                     Create exactly ${currentBatch} unique prompts.
+                    Target Shot Duration: ${shotDuration.toFixed(1)} seconds per prompt (Speed: ${inputs.speed}x).
                     
                     ${criticalRules}
                     ${charRule}
@@ -429,25 +427,26 @@ const App: React.FC = () => {
                     ${extraInstructions}
                     
                     ${constraints}
+
+                    IMPORTANT OUTPUT INSTRUCTION:
+                    Return ONLY VALID JSON. Do NOT wrap it in markdown code blocks (like \`\`\`json). Just the raw JSON array.
                 `;
 
                 const result = await ai.models.generateContent({
                     model: GENERATOR_MODEL,
                     contents: [{ role: 'user', parts: [{ text: prompt }] }],
-                    config: {
-                        responseMimeType: 'application/json',
-                        responseSchema: responseSchema
-                    }
+                    config: { responseMimeType: 'application/json', responseSchema: responseSchema }
                 });
                 
                 const text = result.text || '[]';
-                const json = JSON.parse(text);
+                const cleanText = cleanJsonOutput(text);
+                const json = JSON.parse(cleanText);
                 allPrompts.push(...json);
             }
             
-            // Re-index
             const finalPrompts = allPrompts.map((p, idx) => ({ ...p, id: idx + 1 }));
             setGeneratedPrompts(finalPrompts);
+            setIsConfigCollapsed(true); // Auto collapse after generation
 
         } catch (e: any) {
             setFeedback({ type: 'error', message: `Lỗi tạo prompt: ${e.message}` });
@@ -458,10 +457,8 @@ const App: React.FC = () => {
 
     const downloadExcel = async () => {
         if (generatedPrompts.length === 0) return;
-        
         const today = new Date();
         const dateStr = `${today.getDate().toString().padStart(2, '0')}${(today.getMonth() + 1).toString().padStart(2, '0')}`;
-        // Prefix logic
         const prefixMap: Record<string, string> = { jesus: 'MVCJ', trending: 'MVT', seasonal: 'MVS', looping: 'MVL', cafe: 'MVC', starbucks: 'MVSB', concert: 'LVC', stage: 'LVS' };
         const prefix = prefixMap[genTab] || 'PROMPT';
         const fileName = `${prefix}${dateStr}_${Date.now().toString().slice(-4)}.xlsx`;
@@ -485,10 +482,24 @@ const App: React.FC = () => {
             const result = await ipcRenderer.invoke('save-file-dialog', { defaultPath: fileName, fileContent: buffer });
             if (result.success) {
                 setFeedback({ type: 'success', message: `Đã lưu file: ${result.filePath}` });
-                // Optional: Auto switch to tracker if requested, for now just notify
             }
         } else {
             XLSX.writeFile(workbook, fileName);
+        }
+    };
+
+    // --- TAB ICON HELPER ---
+    const getTabIcon = (tab: GeneratorTab) => {
+        switch(tab) {
+            case 'jesus': return <span className="text-lg">✝️</span>;
+            case 'trending': return <FlameIcon className="w-4 h-4" />;
+            case 'seasonal': return <CalendarIcon className="w-4 h-4" />;
+            case 'looping': return <LoopIcon className="w-4 h-4" />;
+            case 'cafe': return <CoffeeIcon className="w-4 h-4" />;
+            case 'starbucks': return <span className="text-lg">🥤</span>;
+            case 'concert': return <MicIcon className="w-4 h-4" />;
+            case 'stage': return <StageIcon className="w-4 h-4" />;
+            default: return null;
         }
     };
 
@@ -499,216 +510,325 @@ const App: React.FC = () => {
     if (!activeApiKey) return <ApiKeyManagerScreen apiKeys={apiKeys} onKeyAdd={(k) => { const newKeys=[...apiKeys, k]; setApiKeys(newKeys); saveConfig({ apiKeysEncrypted: encrypt(JSON.stringify(newKeys)) }); }} onKeyDelete={(id) => { const newKeys=apiKeys.filter(k=>k.id!==id); setApiKeys(newKeys); saveConfig({ apiKeysEncrypted: encrypt(JSON.stringify(newKeys)) }); }} onKeySelect={(k) => { setActiveApiKey(k); saveConfig({ activeApiKeyId: k.id }); }} />;
 
     return (
-        <div className="min-h-screen relative">
-            {/* Update Available Modal */}
-            {updateAvailableModal && (
-                <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 animate-fade-in-up">
-                        <div className="flex justify-between items-start mb-4">
-                            <h3 className="text-xl font-bold text-gray-900">Có bản cập nhật mới!</h3>
-                            <button onClick={handleUpdateLater} className="text-gray-400 hover:text-gray-600"><XCircleIcon className="w-6 h-6"/></button>
-                        </div>
-                        <p className="text-gray-600 mb-6">
-                            Phiên bản <span className="font-bold text-indigo-600">{updateAvailableModal.version}</span> đã sẵn sàng.
-                            Bạn có muốn tải về và cập nhật ngay bây giờ không?
-                        </p>
-                        <div className="flex gap-3">
-                            <button onClick={handleUpdateLater} className="flex-1 py-3 rounded-xl font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition">
-                                Để sau
-                            </button>
-                            <button onClick={handleUpdateNow} className="flex-1 py-3 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition flex items-center justify-center gap-2">
-                                <DownloadIcon className="w-5 h-5" /> Cập nhật ngay
-                            </button>
-                        </div>
-                        <p className="text-xs text-center text-gray-400 mt-4">Chọn "Để sau" sẽ tải ngầm và cập nhật khi bạn tắt ứng dụng.</p>
-                    </div>
-                </div>
-            )}
-
-            {/* Download Progress Modal */}
+        <div className="min-h-screen relative bg-gray-50/50">
+            {/* Update/Loading Modals */}
             {showProgressModal && (
                 <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
                     <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-8 text-center animate-fade-in-up">
-                         <div className="mb-4 text-indigo-600 flex justify-center">
-                            <LoaderIcon />
-                         </div>
+                         <div className="mb-4 text-indigo-600 flex justify-center"><LoaderIcon /></div>
                         <h3 className="text-xl font-bold text-gray-900 mb-2">Đang tải bản cập nhật...</h3>
-                        <p className="text-gray-500 mb-6 text-sm">Vui lòng không tắt ứng dụng.</p>
-                        
                         <div className="w-full bg-gray-200 rounded-full h-4 mb-2 overflow-hidden">
-                            <div 
-                                className="bg-indigo-600 h-4 rounded-full transition-all duration-300 ease-out" 
-                                style={{ width: `${downloadProgress}%` }}
-                            ></div>
+                            <div className="bg-indigo-600 h-4 rounded-full transition-all duration-300 ease-out" style={{ width: `${downloadProgress}%` }}></div>
                         </div>
                         <p className="font-bold text-gray-700">{downloadProgress}%</p>
                     </div>
                 </div>
             )}
+            
+            {isLoading && (
+                <div className="fixed inset-0 z-[9999] bg-indigo-900/90 backdrop-blur-sm flex flex-col items-center justify-center">
+                    <div className="loader-ring"><div></div><div></div><div></div><div></div></div>
+                    <p className="mt-6 text-white text-xl font-bold tracking-wide animate-pulse">{loadingText}</p>
+                </div>
+            )}
 
-
-             {/* Header */}
-             <header className="bg-white/50 backdrop-blur-lg border-b border-white/20 sticky top-0 z-50">
-                 <div className={`mx-auto px-4 sm:px-6 lg:px-8 ${activeTab === 'tracker' ? 'max-w-[98%] w-full' : 'max-w-7xl'}`}>
+             {/* Header - Fixed Width */}
+             <header className="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50 shadow-sm supports-[backdrop-filter]:bg-white/60">
+                 <div className="mx-auto px-4 sm:px-6 lg:px-8 max-w-[98%] w-full">
                      <div className="flex justify-between h-16 items-center">
-                         <div className="flex items-center gap-4">
-                             <h1 className="text-2xl font-extrabold gradient-text">Trọng - Tool Auto Flow</h1>
-                             <div className="hidden md:flex space-x-1">
-                                 <button onClick={() => setActiveTab('generator')} className={`px-4 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'generator' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-600 hover:bg-gray-100'}`}>Tạo Kịch Bản</button>
-                                 <button onClick={() => setActiveTab('tracker')} className={`px-4 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'tracker' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-600 hover:bg-gray-100'}`}>Theo Dõi Sản Xuất</button>
+                         <div className="flex items-center gap-8">
+                             <h1 className="text-2xl font-extrabold text-indigo-900 tracking-tight">Trọng - Tool Auto Flow</h1>
+                             <div className="hidden md:flex bg-gray-100/80 p-1 rounded-xl border border-gray-200/50 shadow-inner">
+                                 <button onClick={() => setActiveTab('tracker')} className={`px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${activeTab === 'tracker' ? 'bg-white text-indigo-600 shadow-sm ring-1 ring-black/5' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'}`}>Theo Dõi Sản Xuất</button>
+                                 <button onClick={() => setActiveTab('generator')} className={`px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${activeTab === 'generator' ? 'bg-white text-indigo-600 shadow-sm ring-1 ring-black/5' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'}`}>Tạo Kịch Bản</button>
                              </div>
                          </div>
                          <div className="flex items-center gap-3">
-                             {/* Version Info */}
-                             <button onClick={handleCheckUpdate} className="text-xs text-gray-500 hover:text-indigo-600 flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-full" title={updateStatus === 'checking' ? 'Đang kiểm tra...' : 'Kiểm tra cập nhật'}>
+                             <button onClick={handleCheckUpdate} className="text-xs text-gray-500 hover:text-indigo-600 flex items-center gap-1 bg-gray-50 px-2 py-1 rounded border border-gray-200">
                                  <InfoIcon className={`w-3 h-3 ${updateStatus === 'checking' ? 'animate-spin' : ''}`} /> v{appVersion}
                              </button>
-
-                             {activeApiKey && <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full font-bold flex items-center gap-1"><KeyIcon className="w-3 h-3"/> {activeApiKey.name}</span>}
+                             {activeApiKey && <span className="text-xs bg-green-50 text-green-700 border border-green-100 px-2 py-1 rounded font-bold flex items-center gap-1"><KeyIcon className="w-3 h-3"/> {activeApiKey.name}</span>}
                              <button onClick={() => setActiveApiKey(null)} className="text-gray-400 hover:text-gray-600"><CogIcon className="w-5 h-5"/></button>
                          </div>
                      </div>
                  </div>
              </header>
 
-             <main className={`mx-auto p-4 sm:p-6 lg:p-8 ${activeTab === 'tracker' ? 'max-w-[98%] w-full' : 'max-w-7xl'}`}>
+             <main className={`mx-auto p-4 sm:p-6 lg:p-8 ${activeTab === 'tracker' ? 'max-w-[98%] w-full' : 'max-w-6xl'}`}>
                 {activeTab === 'generator' && (
-                    <div className="space-y-8">
-                        {/* Sub-Tabs for Generator */}
-                        <div className="flex flex-wrap gap-2 justify-center bg-white/50 p-2 rounded-xl shadow-sm">
-                            {(['jesus', 'trending', 'seasonal', 'looping', 'cafe', 'starbucks', 'concert', 'stage'] as GeneratorTab[]).map(tab => (
-                                <button key={tab} onClick={() => { setGenTab(tab); setFeedback(null); }} className={`flex-1 min-w-[100px] py-2 px-4 rounded-lg text-sm font-bold transition-all ${genTab === tab ? 'bg-white text-indigo-600 shadow-md' : 'text-gray-500 hover:bg-white/50'}`}>
-                                    {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                                </button>
-                            ))}
+                    <div className="space-y-6">
+                        
+                        {/* Tab Navigation */}
+                        <div className="bg-white p-2 rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
+                            <div className="flex flex-nowrap md:flex-wrap space-x-1 min-w-max">
+                                {(['jesus', 'trending', 'seasonal', 'looping', 'cafe', 'starbucks', 'concert', 'stage'] as GeneratorTab[]).map(tab => {
+                                    const isActive = genTab === tab;
+                                    const labels: Record<string, string> = { jesus: "MV Chúa Jesus", trending: "MV Theo Trend", seasonal: "MV Theo Mùa", looping: "MV Lặp (Loop)", cafe: "MV Quán Cafe", starbucks: "Starbucks", concert: "Live Concert", stage: "Sân Khấu Live" };
+                                    return (
+                                        <button 
+                                            key={tab} 
+                                            onClick={() => { setGenTab(tab); setFeedback(null); }} 
+                                            className={`px-4 py-2.5 rounded-lg text-sm font-bold transition-all whitespace-nowrap flex items-center gap-2 border ${isActive ? 'bg-red-50 text-red-600 border-red-100' : 'bg-transparent text-gray-500 border-transparent hover:bg-gray-50 hover:text-gray-700'}`}
+                                        >
+                                            {getTabIcon(tab)}
+                                            <span>{labels[tab]}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
                         </div>
 
-                        {/* Character Creation Area (Shared) */}
+                        {/* Character Creation Area - Only for Live Concert & Stage */}
                         {(genTab === 'concert' || genTab === 'stage') && (
-                            <div className="glass-card p-6 rounded-2xl space-y-4">
-                                <h3 className="text-lg font-bold gradient-text">Thiết lập Nhân vật (Bắt buộc)</h3>
+                            <div className="glass-card p-6 animate-fade-in-up bg-white">
+                                <div className="flex items-center gap-2 mb-4 text-green-700 font-bold uppercase text-xs tracking-wider">
+                                    <UserIcon className="w-4 h-4"/> Thiết Lập Nhân Vật (Bắt buộc)
+                                </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Mô tả văn bản:</label>
-                                        <textarea value={inputs.characterDesc} onChange={e => handleInputChange('characterDesc', e.target.value)} style={{color: '#ffffff'}} className="w-full p-3 border border-gray-600 rounded-xl bg-gray-900 text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500" rows={3} placeholder="Mô tả chi tiết nhân vật..."></textarea>
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-gray-600">1. Mô tả nhân vật chính:</label>
+                                        <textarea value={inputs.characterDesc} onChange={e => handleInputChange('characterDesc', e.target.value)} className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 outline-none h-32 resize-none shadow-sm" placeholder="Ví dụ: một người phụ nữ trẻ, tóc nâu dài xoăn nhẹ, mặc váy trắng..."></textarea>
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Hoặc tải ảnh phân tích:</label>
-                                        <div className="file-input-wrapper w-full bg-indigo-50 text-indigo-600 font-bold py-3 px-5 rounded-xl border-2 border-dashed border-indigo-200 hover:border-indigo-400 text-center transition">
-                                            <span>{inputs.characterImage ? 'Đã chọn ảnh' : 'Chọn ảnh nhân vật'}</span>
-                                            <input type="file" accept="image/*" onChange={handleImageUpload} />
+                                    <div className="space-y-2">
+                                        <div className="text-center text-xs text-gray-400 font-bold uppercase my-1">-- HOẶC --</div>
+                                        <label className="text-xs font-bold text-gray-600">2. Tải ảnh lên để AI phân tích:</label>
+                                        <div className="file-input-wrapper w-full bg-white text-gray-500 font-medium h-24 rounded-xl border-2 border-dashed border-gray-300 hover:border-green-500 hover:bg-green-50 text-center transition cursor-pointer flex flex-col items-center justify-center text-xs relative group">
+                                            {inputs.characterImage ? (
+                                                <span className="text-green-600 font-bold flex items-center gap-1"><span className="text-lg">✓</span> Đã chọn ảnh</span>
+                                            ) : (
+                                                <span className="flex items-center gap-2"><UploadIcon className="w-4 h-4"/> Chọn hoặc Dán ảnh (Ctrl+V)</span>
+                                            )}
+                                            <input type="file" accept="image/*" onChange={handleImageUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
                                         </div>
-                                        {inputs.characterImage && <button onClick={analyzeCharacterImage} className="mt-2 text-sm text-indigo-600 underline font-bold w-full text-center">Phân tích ảnh này</button>}
+                                        {inputs.characterImage && <button onClick={analyzeCharacterImage} className="text-xs text-green-600 font-bold w-full text-center hover:underline bg-green-50 py-1 rounded">✨ Phân tích ảnh ngay</button>}
                                     </div>
                                 </div>
-                                {characterAnalysis && <div className="p-4 bg-green-50 text-green-800 rounded-lg text-xs font-mono">{characterAnalysis}</div>}
+                                {characterAnalysis && <div className="mt-4 p-3 bg-green-50 text-green-800 rounded-lg text-xs font-mono border border-green-100">{characterAnalysis}</div>}
                             </div>
                         )}
 
-                        {/* Main Form */}
-                        <div className="glass-card p-8 rounded-2xl shadow-lg space-y-6">
-                            {genTab === 'seasonal' && (
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Chọn Tháng:</label>
-                                    <select value={inputs.month} onChange={e => handleInputChange('month', e.target.value)} style={{color: '#ffffff'}} className="w-full p-3 border border-gray-600 rounded-xl bg-gray-900 text-white focus:ring-2 focus:ring-indigo-500">
-                                        {Array.from({length: 12}, (_, i) => i + 1).map(m => <option key={m} value={m}>Tháng {m}</option>)}
-                                    </select>
-                                </div>
-                            )}
-
-                            <div>
-                                <div className="flex justify-between items-center mb-2">
-                                    <label className="block text-sm font-bold text-gray-700">1. Ý tưởng cơ bản:</label>
-                                    {genTab === 'trending' && <button onClick={() => handleInputChange('basicIdea', 'Top Catholic Trend: Mùa Chay & Phục Sinh')} className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded hover:bg-red-200 font-bold">🔥 Tìm Trend</button>}
-                                </div>
-                                <textarea value={inputs.basicIdea} onChange={e => handleInputChange('basicIdea', e.target.value)} style={{color: '#ffffff'}} className="w-full p-3 border border-gray-600 rounded-xl bg-gray-900 text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500" rows={1} placeholder="Ví dụ: Giáng sinh, Tông màu đỏ..." />
-                            </div>
-
-                            <div>
-                                <div className="flex justify-between items-center mb-2">
-                                    <label className="block text-sm font-bold text-gray-700">2. Ý tưởng chi tiết / Định hướng:</label>
-                                    <button onClick={suggestScript} className="text-xs text-indigo-600 font-bold bg-indigo-50 px-2 py-1 rounded hover:bg-indigo-100">✨ Gợi ý từ AI</button>
-                                </div>
-                                <textarea value={inputs.detailedIdea} onChange={e => handleInputChange('detailedIdea', e.target.value)} style={{color: '#ffffff'}} className="w-full p-3 border border-gray-600 rounded-xl bg-gray-900 text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500" rows={6} placeholder="Nhập hoặc nhấn gợi ý để AI đưa ra Chủ đề, Ý tưởng cảnh quay và Màu sắc..." />
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Phong cách:</label>
-                                    <select value={inputs.style} onChange={e => handleInputChange('style', e.target.value)} style={{color: '#ffffff'}} className="w-full p-3 border border-gray-600 rounded-xl bg-gray-900 text-white focus:ring-2 focus:ring-indigo-500">
-                                        <option>Narrative (Kể chuyện)</option>
-                                        <option>Cinematic (Điện ảnh)</option>
-                                        <option>Conceptual (Ý niệm)</option>
-                                        <option>Performance (Trình diễn)</option>
-                                        <option>Documentary (Tài liệu)</option>
-                                    </select>
-                                </div>
-                                {genTab !== 'concert' && genTab !== 'stage' && (
-                                    <div>
-                                        <label className="block text-sm font-bold text-gray-700 mb-2">Thị trường mục tiêu:</label>
-                                        <select value={inputs.market} onChange={e => handleInputChange('market', e.target.value)} style={{color: '#ffffff'}} className="w-full p-3 border border-gray-600 rounded-xl bg-gray-900 text-white focus:ring-2 focus:ring-indigo-500">
-                                            {MARKETS.map(m => (
-                                                <option key={m.code} value={m.name}>{m.name}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                )}
-                            </div>
+                        {/* Collapsible Config Card - Redesigned */}
+                        <div className="glass-card bg-white transition-all duration-300 relative overflow-hidden shadow-sm border border-gray-200 rounded-2xl">
                             
-                            <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">Thời lượng: <span className="text-indigo-600">{inputs.duration}s</span> (~{Math.ceil(inputs.duration/8)} cảnh)</label>
-                                <input type="range" min="8" max="600" step="8" value={inputs.duration} onChange={e => handleInputChange('duration', parseInt(e.target.value))} />
+                            {/* Decorative Corner Ribbon */}
+                            <div className="absolute -top-3 -right-12 bg-red-600 text-white text-[10px] font-bold px-10 py-1 rotate-45 shadow-md z-10 hidden md:block">
+                                AI POWERED
                             </div>
 
-                            {(genTab === 'trending' || genTab === 'looping') && (
-                                <div className="flex gap-4 p-4 bg-gray-50 rounded-xl">
-                                    <label className="flex items-center gap-2 cursor-pointer"><input type="radio" checked={inputs.loopType === 'person'} onChange={() => handleInputChange('loopType', 'person')} /> Có người</label>
-                                    <label className="flex items-center gap-2 cursor-pointer"><input type="radio" checked={inputs.loopType === 'nature'} onChange={() => handleInputChange('loopType', 'nature')} /> Chỉ thiên nhiên</label>
+                            <div className="p-6">
+                                {/* Header Collapse Trigger */}
+                                <div className="flex justify-between items-center mb-6 cursor-pointer select-none" onClick={() => setIsConfigCollapsed(!isConfigCollapsed)}>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-1 h-6 bg-red-500 rounded-full"></div>
+                                        <h3 className="text-lg font-bold text-gray-800">CẤU HÌNH KỊCH BẢN</h3>
+                                    </div>
+                                    <div className={`p-2 rounded-full bg-gray-50 hover:bg-gray-100 transition-transform duration-300 ${isConfigCollapsed ? 'rotate-180' : ''}`}>
+                                        <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7"></path></svg>
+                                    </div>
                                 </div>
-                            )}
 
-                            <button onClick={generatePrompts} disabled={isLoading} className="w-full btn-primary py-4 rounded-xl font-bold text-lg shadow-xl hover:shadow-2xl transition disabled:opacity-70 flex justify-center items-center gap-2">
-                                {isLoading ? <><LoaderIcon /> {loadingText}</> : 'Tạo Kịch Bản Prompt'}
-                            </button>
-                        </div>
+                                <div className={`space-y-6 transition-all duration-500 ease-in-out ${isConfigCollapsed ? 'max-h-0 opacity-0 -my-6 overflow-hidden pointer-events-none' : 'max-h-[2000px] opacity-100'}`}>
+                                    
+                                    {/* GRID ROW 1: Inputs */}
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                        {/* Basic Idea */}
+                                        <div className="flex flex-col h-full">
+                                            <div className="flex justify-between mb-2 items-center">
+                                                <label className="text-xs font-extrabold text-gray-600 uppercase flex items-center gap-1">
+                                                    <span className="text-red-500">🎁</span> 1. Ý tưởng cơ bản
+                                                </label>
+                                                {genTab === 'trending' && <button onClick={() => handleInputChange('basicIdea', 'Top Catholic Trend: Mùa Chay')} className="text-[9px] bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full font-bold hover:bg-orange-200 transition">🔥 MV Theo Trend</button>}
+                                            </div>
+                                            <textarea 
+                                                value={inputs.basicIdea} 
+                                                onChange={e => handleInputChange('basicIdea', e.target.value)} 
+                                                className="w-full h-32 p-4 bg-white border border-gray-300 rounded-xl text-sm text-gray-700 resize-none focus:ring-2 focus:ring-red-200 focus:border-red-400 outline-none transition shadow-sm placeholder-gray-400" 
+                                                placeholder="Ví dụ: Giáng sinh an lành tại nhà thờ Đức Bà..." 
+                                            />
+                                        </div>
 
-                        {/* Feedback & Results */}
-                        {feedback && (
-                            <div className={`p-4 rounded-xl text-center font-bold ${feedback.type === 'error' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-                                {feedback.message}
-                            </div>
-                        )}
+                                        {/* Detailed Idea / AI Suggestion */}
+                                        <div className="flex flex-col h-full">
+                                            <div className="flex justify-between mb-2 items-center">
+                                                <label className="text-xs font-extrabold text-gray-600 uppercase flex items-center gap-1">
+                                                    <span className="text-yellow-500">✨</span> 2. Bối cảnh & Không khí
+                                                </label>
+                                                <button onClick={suggestScript} className="text-[9px] text-white font-bold bg-red-400 px-3 py-1 rounded-full hover:bg-red-500 transition shadow-sm flex items-center gap-1">
+                                                    <SparklesIcon className="w-3 h-3"/> TỐI ƯU Ý TƯỞNG (AI)
+                                                </button>
+                                            </div>
+                                            <textarea 
+                                                value={inputs.detailedIdea} 
+                                                onChange={e => handleInputChange('detailedIdea', e.target.value)} 
+                                                className="w-full h-32 p-4 bg-white border border-gray-300 rounded-xl text-sm text-gray-700 resize-none focus:ring-2 focus:ring-red-200 focus:border-red-400 outline-none transition shadow-sm placeholder-gray-400" 
+                                                placeholder="AI sẽ mô tả chi tiết không khí và bối cảnh tại đây..." 
+                                            />
+                                        </div>
+                                    </div>
 
-                        {generatedPrompts.length > 0 && (
-                            <div className="glass-card rounded-2xl overflow-hidden shadow-lg animate-fade-in-up">
-                                <div className="p-4 bg-white/40 border-b border-white/20 flex justify-between items-center">
-                                    <h3 className="font-bold text-lg text-gray-800">Kết quả ({generatedPrompts.length} prompts)</h3>
-                                    <button onClick={downloadExcel} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 shadow-md transition transform hover:scale-105">
-                                        <span className="text-xl">⤓</span> Tải Excel
+                                    {/* GRID ROW 2: Selectors */}
+                                    <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                        <div>
+                                            <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 block">Phong cách</label>
+                                            <select value={inputs.style} onChange={e => handleInputChange('style', e.target.value)} className="w-full p-2 bg-white border border-gray-300 rounded-lg text-xs font-bold text-gray-700 focus:border-red-400 focus:ring-2 focus:ring-red-100 outline-none">
+                                                <option>Kể chuyện (Narrative)</option>
+                                                <option>Điện ảnh (Cinematic)</option>
+                                                <option>Tài liệu (Documentary)</option>
+                                                <option>TVC Quảng Cáo</option>
+                                                <option>Vlog Chill/Aesthetic</option>
+                                                <option>Trình diễn (Performance)</option>
+                                                <option>Ý niệm (Conceptual)</option>
+                                                <option>Hiện đại/LED Lớn</option>
+                                                <option>Acoustic/Thân mật</option>
+                                            </select>
+                                        </div>
+                                        {genTab !== 'concert' && genTab !== 'stage' && (
+                                            <div>
+                                                <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 block flex items-center gap-1"><span className="text-blue-400">🌐</span> Thị trường</label>
+                                                <select value={inputs.market} onChange={e => handleInputChange('market', e.target.value)} className="w-full p-2 bg-white border border-gray-300 rounded-lg text-xs font-bold text-gray-700 focus:border-red-400 focus:ring-2 focus:ring-red-100 outline-none">
+                                                    <option>Toàn cầu (Chung)</option>
+                                                    {MARKETS.map(m => <option key={m.code} value={m.name}>{m.name}</option>)}
+                                                </select>
+                                            </div>
+                                        )}
+                                        <div className="lg:col-span-2">
+                                            <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 block">Chế độ cảnh</label>
+                                            <div className="flex bg-gray-200 p-1 rounded-lg">
+                                                <button onClick={() => handleInputChange('mode', 'character')} className={`flex-1 py-1.5 rounded-md text-xs font-bold transition flex items-center justify-center gap-1 ${inputs.mode === 'character' ? 'bg-white text-red-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                                                    <UserIcon className="w-3 h-3"/> Có Nhân Vật
+                                                </button>
+                                                <button onClick={() => handleInputChange('mode', 'landscape')} className={`flex-1 py-1.5 rounded-md text-xs font-bold transition flex items-center justify-center gap-1 ${inputs.mode === 'landscape' ? 'bg-white text-green-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                                                    <MountainIcon className="w-3 h-3"/> Chỉ Thiên Nhiên
+                                                </button>
+                                            </div>
+                                        </div>
+                                        {genTab === 'seasonal' && (
+                                            <div>
+                                                <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 block">Tháng</label>
+                                                <select value={inputs.month} onChange={e => handleInputChange('month', e.target.value)} className="w-full p-2 bg-white border border-gray-300 rounded-lg text-xs font-bold text-gray-700 focus:border-red-400 focus:ring-2 focus:ring-red-100 outline-none">
+                                                    {Array.from({length: 12}, (_, i) => i + 1).map(m => <option key={m} value={m}>Tháng {m}</option>)}
+                                                </select>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* GRID ROW 3: Sliders (Duration & Speed) */}
+                                    <div className="bg-red-50/50 border border-red-100 rounded-2xl p-6 flex flex-col md:flex-row gap-8 items-stretch relative overflow-hidden">
+                                        <div className="absolute right-0 top-0 opacity-5 pointer-events-none">
+                                            <ClockIcon className="w-64 h-64 text-red-900" />
+                                        </div>
+
+                                        {/* Duration Box */}
+                                        <div className="flex-1 space-y-4 z-10">
+                                            <div className="flex justify-between items-end">
+                                                <label className="text-xs font-bold text-red-800 uppercase flex items-center gap-1">
+                                                    <ClockIcon className="w-4 h-4"/> Tổng thời lượng Video
+                                                </label>
+                                            </div>
+                                            <div className="flex items-center gap-2 bg-white p-3 rounded-xl border border-red-100 shadow-sm">
+                                                <div className="flex-1 text-center border-r border-gray-100">
+                                                    <div className="text-2xl font-black text-gray-800">{Math.floor(inputs.duration / 3600)}</div>
+                                                    <div className="text-[9px] text-gray-400 font-bold uppercase">Giờ</div>
+                                                </div>
+                                                <div className="text-gray-300 font-light text-xl">:</div>
+                                                <div className="flex-1 text-center border-r border-gray-100">
+                                                    <div className="text-2xl font-black text-gray-800">{Math.floor((inputs.duration % 3600) / 60)}</div>
+                                                    <div className="text-[9px] text-gray-400 font-bold uppercase">Phút</div>
+                                                </div>
+                                                <div className="text-gray-300 font-light text-xl">:</div>
+                                                <div className="flex-1 text-center">
+                                                    <div className="text-2xl font-black text-gray-800">{inputs.duration % 60}</div>
+                                                    <div className="text-[9px] text-gray-400 font-bold uppercase">Giây</div>
+                                                </div>
+                                            </div>
+                                            <input 
+                                                type="range" 
+                                                min="8" max="600" step="8" 
+                                                value={inputs.duration} 
+                                                onChange={e => handleInputChange('duration', parseInt(e.target.value))} 
+                                                className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-red-500"
+                                            />
+                                        </div>
+
+                                        <div className="w-px bg-red-100 hidden md:block"></div>
+
+                                        {/* Speed Box */}
+                                        <div className="flex-1 space-y-4 z-10">
+                                            <div className="flex justify-between items-center">
+                                                <label className="text-xs font-bold text-green-800 uppercase flex items-center gap-1">
+                                                    <LightningIcon className="w-4 h-4"/> Tốc độ (Speed)
+                                                </label>
+                                                <span className="text-xl font-black text-green-800">{inputs.speed}x</span>
+                                            </div>
+                                            
+                                            <div className="h-16 flex items-center justify-center relative">
+                                                <input 
+                                                    type="range" 
+                                                    min="0.5" max="2.0" step="0.1" 
+                                                    value={inputs.speed} 
+                                                    onChange={e => handleInputChange('speed', parseFloat(e.target.value))} 
+                                                    className="w-full h-2 bg-green-200 rounded-lg appearance-none cursor-pointer accent-green-600 relative z-20"
+                                                />
+                                            </div>
+
+                                            <div className="flex justify-between items-center bg-white/60 p-2 rounded-lg border border-green-50">
+                                                <span className="text-[10px] text-gray-500">Thời lượng 1 shot:</span>
+                                                <span className="text-sm font-black text-red-500">{shotDuration.toFixed(2)}s</span>
+                                                <div className="text-center">
+                                                    <div className="text-[9px] text-gray-400 font-bold uppercase">Tổng Prompts</div>
+                                                    <div className="text-xl font-black text-orange-500 leading-none">{totalPrompts}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Generate Button */}
+                                    <button onClick={generatePrompts} disabled={isLoading} className="w-full bg-[#E08E8E] hover:bg-[#d67c7c] text-white font-extrabold text-sm py-4 rounded-xl shadow-lg hover:shadow-xl transition-all transform active:scale-[0.99] flex justify-center items-center gap-2 border-b-4 border-[#c57272]">
+                                        <span>TẠO {totalPrompts} PROMPTS NGAY 🎁</span>
                                     </button>
                                 </div>
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-sm text-left text-gray-700 job-table">
-                                        <thead>
+                            </div>
+                        </div>
+
+                        {/* Results Table - Clean & Minimal */}
+                        {generatedPrompts.length > 0 && (
+                            <div className="glass-card overflow-hidden bg-white animate-fade-in-up mb-24 border border-gray-100 shadow-lg">
+                                <div className="p-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                                    <h3 className="text-xs font-black text-gray-600 uppercase tracking-widest">Kết quả Generated</h3>
+                                    <span className="text-[10px] font-bold text-gray-400 bg-white px-2 py-1 rounded border border-gray-200 shadow-sm">{generatedPrompts.length} ITEMS</span>
+                                </div>
+                                <div className="overflow-x-auto max-h-[60vh] custom-scrollbar">
+                                    <table className="w-full text-sm text-left text-gray-700">
+                                        <thead className="text-[10px] text-gray-400 uppercase bg-white sticky top-0 z-10 shadow-sm">
                                             <tr>
-                                                <th className="px-6 py-4 w-16 text-center">ID</th>
-                                                <th className="px-6 py-4">Prompt Chi Tiết</th>
-                                                <th className="px-6 py-4 text-center w-24">Lock?</th>
+                                                <th className="px-6 py-4 font-extrabold tracking-widest w-16">STT</th>
+                                                <th className="px-6 py-4 font-extrabold tracking-widest">Nội dung Prompt</th>
+                                                <th className="px-6 py-4 font-extrabold tracking-widest text-center w-24">Lock</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-gray-100 bg-white/60">
+                                        <tbody className="divide-y divide-gray-50">
                                             {generatedPrompts.map(p => (
-                                                <tr key={p.id} className="hover:bg-indigo-50/50 transition">
-                                                    <td className="px-6 py-4 text-center font-mono text-gray-500">{p.id}</td>
-                                                    <td className="px-6 py-4 font-mono text-xs leading-relaxed">{p.prompt_text}</td>
+                                                <tr key={p.id} className="hover:bg-blue-50/30 transition group">
+                                                    <td className="px-6 py-4 font-mono text-xs text-gray-400 font-bold group-hover:text-blue-500">{p.id}</td>
+                                                    <td className="px-6 py-4 text-xs text-gray-600 leading-relaxed font-medium">{p.prompt_text}</td>
                                                     <td className="px-6 py-4 text-center">
-                                                        {p.is_subject_lock ? <span className="bg-indigo-100 text-indigo-700 px-2 py-1 rounded text-xs font-bold">YES</span> : <span className="text-gray-300 text-xs">-</span>}
+                                                        {p.is_subject_lock ? <span className="inline-flex items-center px-2 py-1 rounded text-[9px] font-bold bg-green-100 text-green-700">LOCK</span> : <span className="text-gray-200 text-xs font-bold">-</span>}
                                                     </td>
                                                 </tr>
                                             ))}
                                         </tbody>
                                     </table>
                                 </div>
+                            </div>
+                        )}
+                        
+                        {/* Floating Download Button */}
+                        {generatedPrompts.length > 0 && (
+                            <div className="fixed bottom-8 right-8 z-40 floating-enter">
+                                <button onClick={downloadExcel} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-full shadow-2xl hover:shadow-indigo-500/30 hover:-translate-y-1 transition-all flex items-center gap-3 border-2 border-white/20 backdrop-blur-md">
+                                    <DownloadIcon className="w-5 h-5" />
+                                    <span>Tải File Excel</span>
+                                </button>
                             </div>
                         )}
                     </div>

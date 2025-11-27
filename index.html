@@ -12,161 +12,105 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-start: #e0e7ff;
-            --bg-end: #c7d2fe;
-            --card-bg: rgba(255, 255, 255, 0.65);
-            --card-border: rgba(255, 255, 255, 0.3);
+            --bg-start: #eef2ff;
+            --bg-end: #e0e7ff;
+            --card-bg: #ffffff;
             --text-primary: #1f2937;
             --text-secondary: #4b5563;
-            --accent-start: #4f46e5;
-            --accent-end: #7c3aed;
-            --shadow-color: rgba(79, 70, 229, 0.15);
+            --accent-start: #6366f1;
+            --accent-end: #4f46e5;
+            --shadow-color: rgba(79, 70, 229, 0.1);
         }
         body {
             font-family: 'Inter', sans-serif;
             background-image: linear-gradient(135deg, var(--bg-start) 0%, var(--bg-end) 100%);
             color: var(--text-primary);
             min-height: 100vh;
-            overflow: hidden; /* Prevent body scroll, handle inside containers */
+            overflow: hidden;
         }
         
-        /* Modern Scrollbar for Windows 11 feel */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.02);
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: rgba(0, 0, 0, 0.15);
-            border-radius: 4px;
-            transition: background 0.2s;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: rgba(0, 0, 0, 0.3);
-        }
+        /* Modern Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         
         .glassmorphism {
-            background: var(--card-bg);
+            background: rgba(255, 255, 255, 0.8);
             backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid var(--card-border);
+            border: 1px solid rgba(255, 255, 255, 0.5);
             box-shadow: 0 8px 32px 0 var(--shadow-color);
         }
+        
         .glass-card {
-             /* Keeping compatibility with old classes but updating look */
             background: var(--card-bg);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid var(--card-border);
-            box-shadow: 0 8px 32px 0 var(--shadow-color);
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+            border: 1px solid rgba(229, 231, 235, 0.5);
         }
+
         .btn-primary {
             background-image: linear-gradient(to right, var(--accent-start) 0%, var(--accent-end) 100%);
             transition: all 0.3s ease;
-            box-shadow: 0 4px 15px 0 rgba(79, 70, 229, 0.25);
+            box-shadow: 0 4px 15px 0 rgba(99, 102, 241, 0.3);
             color: white;
         }
         .btn-primary:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px 0 rgba(79, 70, 229, 0.35);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px 0 rgba(99, 102, 241, 0.4);
         }
-        .copy-btn {
-            transition: all 0.2s ease;
-        }
-        .copy-btn:active {
-            transform: scale(0.95);
-        }
+        
         .gradient-text {
             background: linear-gradient(to right, var(--accent-start), var(--accent-end));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
-        
-        /* Form Elements */
-        select {
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%234f46e5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 0.7rem center;
-            background-size: 1.2em;
-            padding-right: 2.5rem;
-        }
 
-        /* Tracker Tab Styles Compatibility */
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 0.25em 0.6em;
-            font-size: 0.8em;
-            font-weight: 600;
-            border-radius: 9999px;
-            white-space: nowrap;
-        }
-        .status-pending { background-color: #9ca3af; color: #1f2937; }
-        .status-processing { background-color: #60a5fa; color: #1e3a8a; }
-        .status-generating { background-color: #fcd34d; color: #78350f; }
-        .status-completed { background-color: #34d399; color: #064e3b; }
-        .status-failed { background-color: #f87171; color: #7f1d1d; }
-
-        .job-table th {
-            text-align: left;
-            font-size: 0.8rem;
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
-            color: #4b5563;
-            background-color: rgba(243, 244, 246, 0.8);
-            backdrop-filter: blur(5px);
-        }
-        .job-table td {
-            color: #1f2937;
-            border-bottom: 1px solid rgba(0,0,0,0.05);
-        }
-        
-        /* Sliders */
+        /* Custom Range Slider */
         input[type=range] {
             -webkit-appearance: none;
-            appearance: none;
             width: 100%;
-            height: 8px;
-            background: linear-gradient(to right, var(--accent-start), var(--accent-end));
+            height: 6px;
+            background: #e5e7eb;
+            border-radius: 3px;
             outline: none;
-            opacity: 0.7;
-            transition: opacity .2s;
-            border-radius: 5px;
         }
-        input[type=range]:hover { opacity: 1; }
         input[type=range]::-webkit-slider-thumb {
             -webkit-appearance: none;
-            appearance: none;
-            width: 20px;
-            height: 20px;
-            background: white;
-            border: 2px solid var(--accent-start);
+            width: 18px;
+            height: 18px;
+            background: var(--accent-end);
             border-radius: 50%;
             cursor: pointer;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            border: 2px solid #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.1s;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
         }
 
-        /* File Input Wrapper */
-        .file-input-wrapper {
-            position: relative;
-            overflow: hidden;
-            display: inline-block;
-            cursor: pointer;
+        /* Loading Animation */
+        .loader-ring { display: inline-block; position: relative; width: 64px; height: 64px; }
+        .loader-ring div { box-sizing: border-box; display: block; position: absolute; width: 50px; height: 50px; margin: 8px; border: 4px solid #fff; border-radius: 50%; animation: loader-ring 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite; border-color: #fff transparent transparent transparent; }
+        .loader-ring div:nth-child(1) { animation-delay: -0.45s; }
+        .loader-ring div:nth-child(2) { animation-delay: -0.3s; }
+        .loader-ring div:nth-child(3) { animation-delay: -0.15s; }
+        @keyframes loader-ring { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Floating Animation */
+        .floating-enter { animation: slideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        @keyframes slideUp { from { transform: translateY(100px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        /* Status Badges */
+        .status-badge { display: inline-flex; align-items: center; padding: 0.25em 0.6em; font-size: 0.7em; font-weight: 700; border-radius: 9999px; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.05em; }
+        
+        .input-group {
+            transition: all 0.2s;
         }
-        .file-input-wrapper input[type=file] {
-            position: absolute;
-            left: 0;
-            top: 0;
-            opacity: 0;
-            cursor: pointer;
-            width: 100%;
-            height: 100%;
+        .input-group:focus-within {
+            border-color: var(--accent-start);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
         }
     </style>
 <script type="importmap">
@@ -190,14 +134,9 @@
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
     <script>
-      // Only register Service Worker if we are on a web protocol (http/https)
       if ('serviceWorker' in navigator && (window.location.protocol === 'http:' || window.location.protocol === 'https:')) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').then(registration => {
-            console.log('SW registered: ', registration);
-          }).catch(registrationError => {
-            console.log('SW registration failed: ', registrationError);
-          });
+          navigator.serviceWorker.register('/sw.js').catch(() => {});
         });
       }
     </script>
