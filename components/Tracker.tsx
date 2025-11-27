@@ -11,7 +11,9 @@ import {
   ExternalLinkIcon, 
   CogIcon,
   SearchIcon,
-  LinkIcon
+  LinkIcon,
+  CheckIcon,
+  ChartIcon
 } from './Icons';
 
 const isElectron = navigator.userAgent.toLowerCase().includes('electron');
@@ -23,15 +25,11 @@ const Tracker: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [combineMode, setCombineMode] = useState<'normal' | 'timed'>('normal');
 
-    // Stats Calculation
+    // Global Stats Calculation
     const totalFiles = files.length;
     const totalJobs = files.reduce((acc, f) => acc + f.jobs.length, 0);
     const totalCompleted = files.reduce((acc, f) => acc + f.jobs.filter(j => j.status === 'Completed').length, 0);
     const globalPercent = totalJobs > 0 ? Math.round((totalCompleted / totalJobs) * 100) : 0;
-
-    // Refs to track previous lengths/states to avoid loops
-    const filesRef = useRef(files);
-    filesRef.current = files;
 
     // --- Helpers ---
     const parseExcel = (bufferInput: any): VideoJob[] => {
@@ -69,7 +67,6 @@ const Tracker: React.FC = () => {
 
     const getFileUrl = (path: string) => {
         if (!path) return '';
-        // Normalize path for Windows: replace backslashes with forward slashes
         return `file://${path.replace(/\\/g, '/')}`;
     };
 
@@ -233,6 +230,21 @@ const Tracker: React.FC = () => {
             handleRefresh();
         }
     };
+    
+    // NEW: Reset Single Job
+    const handleResetJob = async (job: VideoJob) => {
+        const activeFile = files[activeFileIndex];
+        if (!activeFile || !ipcRenderer || !activeFile.path) return;
+        if (!confirm(`Bạn có chắc muốn tạo lại (reset) Job "${job.id}" không?`)) return;
+
+        setLoading(true);
+        try {
+            await ipcRenderer.invoke('retry-job', { filePath: activeFile.path, jobId: job.id });
+            await handleRefresh();
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleOpenToolFlow = async () => {
         if (!ipcRenderer) return;
@@ -305,6 +317,12 @@ const Tracker: React.FC = () => {
     // --- Render ---
     const activeFile = files[activeFileIndex];
     
+    // File Specific Stats
+    const fileTotal = activeFile ? activeFile.jobs.length : 0;
+    const fileCompleted = activeFile ? activeFile.jobs.filter(j => j.status === 'Completed').length : 0;
+    const fileProcessing = activeFile ? activeFile.jobs.filter(j => j.status === 'Processing' || j.status === 'Generating').length : 0;
+    const filePercent = fileTotal > 0 ? Math.round((fileCompleted / fileTotal) * 100) : 0;
+
     if (!isElectron) return <div className="text-center p-10 text-gray-500">Chức năng này chỉ hoạt động trên phiên bản Desktop (Electron).</div>;
 
     if (files.length === 0) {
@@ -328,9 +346,8 @@ const Tracker: React.FC = () => {
     return (
         <div className="flex flex-col h-[calc(100vh-100px)]">
             
-            {/* Global Status Dashboard - Windows 11 Style Widget */}
+            {/* Global Status Dashboard */}
             <div className="glass-card p-4 mb-4 rounded-2xl flex flex-wrap items-center gap-6 justify-between animate-fade-in-up border border-white/40 shadow-sm">
-                {/* Stats */}
                 <div className="flex gap-8 items-center border-r border-gray-200 pr-8">
                      <div className="flex flex-col">
                         <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Tổng Dự Án</span>
@@ -348,7 +365,6 @@ const Tracker: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Big Progress Bar */}
                 <div className="flex-1 min-w-[200px] flex flex-col justify-center px-4">
                      <div className="flex justify-between text-xs font-bold text-gray-500 mb-1.5">
                          <span>Global Processing...</span>
@@ -362,7 +378,6 @@ const Tracker: React.FC = () => {
                      </div>
                 </div>
 
-                {/* Consolidated Actions Toolbar */}
                 <div className="flex items-center gap-2 pl-4 border-l border-gray-200">
                      <div className="flex gap-1 mr-2">
                         <button onClick={handleOpenFile} className="p-2 hover:bg-white rounded-lg text-gray-500 hover:text-indigo-600 transition" title="Mở thêm file"><FolderIcon className="w-5 h-5" /></button>
@@ -380,7 +395,7 @@ const Tracker: React.FC = () => {
             <div className="flex gap-4 flex-1 overflow-hidden">
                 
                 {/* Left Sidebar: File List */}
-                <div className="w-[300px] flex flex-col gap-3 overflow-y-auto pr-2 pb-4 custom-scrollbar">
+                <div className="w-[280px] flex flex-col gap-3 overflow-y-auto pr-2 pb-4 custom-scrollbar">
                     {files.map((f, idx) => {
                         const total = f.jobs.length;
                         const completed = f.jobs.filter(j => j.status === 'Completed').length;
@@ -408,11 +423,6 @@ const Tracker: React.FC = () => {
                                         <TrashIcon className="w-3 h-3" />
                                     </button>
                                 </div>
-                                
-                                <div className="flex items-center justify-between text-[10px] text-gray-500 mb-1.5 font-medium">
-                                    <span>{completed}/{total} videos</span>
-                                    <span className={percent === 100 ? 'text-green-600 font-bold' : ''}>{percent}%</span>
-                                </div>
                                 <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
                                     <div 
                                         className={`h-full rounded-full transition-all duration-500 ${percent === 100 ? 'bg-green-500' : 'bg-indigo-500'}`} 
@@ -424,47 +434,92 @@ const Tracker: React.FC = () => {
                     })}
                 </div>
 
-                {/* Right Main Content: Active File Details */}
+                {/* Right Main Content */}
                 <div className="flex-1 flex flex-col gap-4 overflow-hidden">
                     {activeFile ? (
                         <>
-                            {/* File Header & Actions */}
-                            <div className="glass-card px-5 py-4 rounded-2xl shadow-sm flex items-center justify-between border border-white/50">
-                                <div className="overflow-hidden">
-                                    <h2 className="text-lg font-extrabold text-gray-800 truncate" title={activeFile.name}>{activeFile.name}</h2>
-                                    <p className="text-[10px] text-gray-400 truncate font-mono mt-0.5">{activeFile.path}</p>
+                            {/* File Status Header (Redesigned as per request) */}
+                            <div className="glass-card p-5 rounded-2xl shadow-sm border border-white/50">
+                                <div className="flex justify-between items-start mb-4">
+                                     <div>
+                                        <h2 className="text-xl font-extrabold text-gray-800 truncate">{activeFile.name}</h2>
+                                        <p className="text-[10px] text-gray-400 truncate font-mono mt-0.5 max-w-lg cursor-pointer hover:text-indigo-600" onClick={copyFolderPath} title="Click to copy folder path">{activeFile.path}</p>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button onClick={handleRefresh} className="p-2 rounded-xl bg-white text-gray-600 hover:text-indigo-600 shadow-sm hover:shadow-md border border-gray-100 transition" title="Làm mới"><LinkIcon className="w-5 h-5"/></button>
+                                        <button onClick={handleRetryStuck} className="p-2 rounded-xl bg-white text-gray-600 hover:text-orange-600 shadow-sm hover:shadow-md border border-gray-100 transition" title="Sửa lỗi kẹt"><RetryIcon className="w-5 h-5"/></button>
+                                    </div>
                                 </div>
-                                <div className="flex gap-2 shrink-0">
-                                    <button onClick={copyFolderPath} className="p-2 rounded-lg bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200" title="Copy Path"><FolderIcon className="w-4 h-4"/></button>
-                                    <button onClick={handleRefresh} className="p-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200" title="Refresh"><RetryIcon className="w-4 h-4"/></button>
-                                    <button onClick={handleRetryStuck} className="p-2 rounded-lg bg-orange-50 text-orange-600 hover:bg-orange-100 border border-orange-200" title="Fix Stuck Jobs"><LinkIcon className="w-4 h-4"/></button>
+
+                                {/* Status Cards Row */}
+                                <div className="grid grid-cols-4 gap-4">
+                                    {/* Total Job Card */}
+                                    <div className="bg-indigo-50/50 rounded-xl p-3 flex items-center gap-3 border border-indigo-100">
+                                        <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg"><ChartIcon className="w-5 h-5"/></div>
+                                        <div>
+                                            <div className="text-[10px] font-bold text-gray-500 uppercase">Tổng Job</div>
+                                            <div className="text-xl font-extrabold text-gray-800">{fileTotal}</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Completed Card */}
+                                    <div className="bg-green-50/50 rounded-xl p-3 flex items-center gap-3 border border-green-100">
+                                        <div className="p-2 bg-green-100 text-green-600 rounded-lg"><CheckIcon className="w-5 h-5"/></div>
+                                        <div>
+                                            <div className="text-[10px] font-bold text-gray-500 uppercase">Hoàn Thành</div>
+                                            <div className="text-xl font-extrabold text-green-600">{fileCompleted}</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Processing Card */}
+                                    <div className="bg-yellow-50/50 rounded-xl p-3 flex items-center gap-3 border border-yellow-100">
+                                        <div className="p-2 bg-yellow-100 text-yellow-600 rounded-lg"><LoaderIcon /></div>
+                                        <div>
+                                            <div className="text-[10px] font-bold text-gray-500 uppercase">Đang Xử Lý</div>
+                                            <div className="text-xl font-extrabold text-yellow-600">{fileProcessing}</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Progress Percent Card */}
+                                    <div className="bg-gray-50/50 rounded-xl p-3 flex items-center justify-between gap-3 border border-gray-200">
+                                        <div>
+                                            <div className="text-[10px] font-bold text-gray-500 uppercase">Tiến Độ</div>
+                                            <div className="text-xl font-extrabold text-indigo-600">{filePercent}%</div>
+                                        </div>
+                                        <div className="h-10 w-10 relative flex items-center justify-center">
+                                             <svg className="w-full h-full transform -rotate-90">
+                                                <circle cx="20" cy="20" r="16" stroke="currentColor" strokeWidth="4" fill="transparent" className="text-gray-200" />
+                                                <circle cx="20" cy="20" r="16" stroke="currentColor" strokeWidth="4" fill="transparent" className="text-indigo-600" strokeDasharray={100} strokeDashoffset={100 - filePercent} />
+                                             </svg>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
                             {/* Combine Controls */}
-                            <div className="bg-indigo-50/60 backdrop-blur-sm px-4 py-3 rounded-2xl border border-indigo-100 flex items-center justify-between">
+                            <div className="bg-white/60 backdrop-blur-sm px-4 py-3 rounded-2xl border border-white/50 flex items-center justify-between shadow-sm">
                                 <div className="flex items-center gap-4 text-xs font-bold text-gray-600">
                                     <span className="text-indigo-800 uppercase tracking-wider">Ghép Video</span>
-                                    <div className="h-4 w-px bg-indigo-200"></div>
+                                    <div className="h-4 w-px bg-gray-300"></div>
                                     <label className="flex items-center gap-1.5 cursor-pointer hover:text-indigo-600 transition"><input type="radio" name="combine" checked={combineMode==='normal'} onChange={()=>setCombineMode('normal')} className="accent-indigo-600 w-3 h-3"/> Nối thường</label>
                                     <label className="flex items-center gap-1.5 cursor-pointer hover:text-indigo-600 transition"><input type="radio" name="combine" checked={combineMode==='timed'} onChange={()=>setCombineMode('timed')} className="accent-indigo-600 w-3 h-3"/> Theo thời gian</label>
                                 </div>
                                 <div className="flex gap-2">
-                                    <button onClick={handleCombine} className="bg-white text-indigo-700 border border-indigo-200 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-indigo-50 transition">Ghép File Này</button>
-                                    <button onClick={handleCombineAll} className="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-md hover:bg-indigo-700 transition border border-transparent">Ghép Tất Cả</button>
+                                    <button onClick={handleCombine} className="bg-white text-indigo-700 border border-indigo-200 px-4 py-2 rounded-xl text-xs font-bold shadow-sm hover:bg-indigo-50 transition">Ghép File Này</button>
+                                    <button onClick={handleCombineAll} className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-md hover:bg-indigo-700 transition border border-transparent">Ghép Tất Cả</button>
                                 </div>
                             </div>
 
-                            {/* Job Table - New Layout */}
+                            {/* Job Table - Improved Actions */}
                             <div className="flex-1 glass-card rounded-2xl overflow-hidden shadow-inner flex flex-col border border-white/50">
                                 <div className="overflow-y-auto flex-1 custom-scrollbar">
                                     <table className="w-full text-sm text-left text-gray-700">
                                         <thead className="sticky top-0 z-10 bg-white/95 backdrop-blur-md shadow-sm">
                                             <tr>
-                                                <th className="px-6 py-3 w-20 text-gray-400 font-bold uppercase text-[10px] tracking-wider">ID</th>
-                                                <th className="px-6 py-3 w-40 text-gray-400 font-bold uppercase text-[10px] tracking-wider">Video Preview</th>
-                                                <th className="px-6 py-3 w-32 text-center text-gray-400 font-bold uppercase text-[10px] tracking-wider">Trạng thái</th>
-                                                <th className="px-6 py-3 text-right text-gray-400 font-bold uppercase text-[10px] tracking-wider">Hành động</th>
+                                                <th className="px-6 py-4 w-20 text-gray-400 font-bold uppercase text-[10px] tracking-wider">ID</th>
+                                                <th className="px-6 py-4 w-40 text-gray-400 font-bold uppercase text-[10px] tracking-wider">Video Preview</th>
+                                                <th className="px-6 py-4 w-32 text-center text-gray-400 font-bold uppercase text-[10px] tracking-wider">Trạng thái</th>
+                                                <th className="px-6 py-4 text-right text-gray-400 font-bold uppercase text-[10px] tracking-wider">Hành động</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-100">
@@ -472,7 +527,7 @@ const Tracker: React.FC = () => {
                                                 <tr key={job.id + jIdx} className="hover:bg-white/60 transition group">
                                                     <td className="px-6 py-4 font-mono font-bold text-gray-400 group-hover:text-indigo-500 text-xs">
                                                         {job.id}
-                                                        <div className="text-[10px] font-normal text-gray-300 mt-1 truncate w-20 select-none" title={job.prompt}>
+                                                        <div className="text-[10px] font-normal text-gray-300 mt-1 truncate w-24 select-none" title={job.prompt}>
                                                             {job.prompt ? job.prompt.substring(0, 15) + '...' : ''}
                                                         </div>
                                                     </td>
@@ -498,18 +553,36 @@ const Tracker: React.FC = () => {
                                                         )}
                                                     </td>
                                                     <td className="px-6 py-4 text-center">
-                                                        <span className={`status-badge status-${job.status?.toLowerCase() || 'pending'} px-2.5 py-0.5 rounded-full text-[10px] font-bold shadow-sm uppercase tracking-wide border border-black/5`}>
+                                                        <span className={`status-badge status-${job.status?.toLowerCase() || 'pending'} px-3 py-1 rounded-lg text-[10px] font-extrabold shadow-sm uppercase tracking-wide border border-black/5`}>
                                                             {job.status || 'Pending'}
                                                         </span>
                                                     </td>
-                                                    <td className="px-6 py-4 text-right">
-                                                        {job.videoPath && (
-                                                            <div className="flex justify-end gap-1 opacity-40 group-hover:opacity-100 transition">
-                                                                <button onClick={() => handleVideoAction('play', job)} className="p-1.5 bg-white rounded-md shadow-sm hover:text-green-600 hover:shadow-md transition text-gray-400 border border-gray-100" title="Xem video"><PlayIcon className="w-3.5 h-3.5"/></button>
-                                                                <button onClick={() => handleVideoAction('folder', job)} className="p-1.5 bg-white rounded-md shadow-sm hover:text-blue-600 hover:shadow-md transition text-gray-400 border border-gray-100" title="Mở thư mục"><FolderIcon className="w-3.5 h-3.5"/></button>
-                                                                <button onClick={() => handleVideoAction('delete', job)} className="p-1.5 bg-white rounded-md shadow-sm hover:text-red-500 hover:shadow-md transition text-gray-400 border border-gray-100" title="Xóa video"><TrashIcon className="w-3.5 h-3.5"/></button>
-                                                            </div>
-                                                        )}
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex justify-end items-center gap-2">
+                                                            {/* Reset Button (Always visible or context aware) */}
+                                                            <button 
+                                                                onClick={() => handleResetJob(job)} 
+                                                                className="w-8 h-8 flex items-center justify-center rounded-lg bg-indigo-50 text-indigo-500 hover:bg-indigo-100 hover:text-indigo-700 transition shadow-sm border border-indigo-100" 
+                                                                title="Tạo lại (Reset)"
+                                                            >
+                                                                <RetryIcon className="w-4 h-4" />
+                                                            </button>
+
+                                                            {job.videoPath ? (
+                                                                <>
+                                                                    <button onClick={() => handleVideoAction('play', job)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-green-50 text-green-500 hover:bg-green-100 hover:text-green-700 transition shadow-sm border border-green-100" title="Xem video"><PlayIcon className="w-4 h-4"/></button>
+                                                                    <button onClick={() => handleVideoAction('folder', job)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-50 text-blue-500 hover:bg-blue-100 hover:text-blue-700 transition shadow-sm border border-blue-100" title="Mở thư mục"><FolderIcon className="w-4 h-4"/></button>
+                                                                    <button onClick={() => handleVideoAction('delete', job)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-700 transition shadow-sm border border-red-100" title="Xóa video"><TrashIcon className="w-4 h-4"/></button>
+                                                                </>
+                                                            ) : (
+                                                                // Placeholders to keep spacing consistent
+                                                                <>
+                                                                    <div className="w-8 h-8"></div>
+                                                                    <div className="w-8 h-8"></div>
+                                                                    <div className="w-8 h-8"></div>
+                                                                </>
+                                                            )}
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             ))}
