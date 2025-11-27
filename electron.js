@@ -535,12 +535,17 @@ ipcMain.handle('open-tool-flow', async () => {
 });
 
 ipcMain.handle('set-tool-flow-path', async () => {
-    const result = await dialog.showOpenDialog({ properties: ['openFile'], filters: [{ name: 'Executables', extensions: ['exe'] }] });
+    const win = BrowserWindow.getFocusedWindow();
+    const result = await dialog.showOpenDialog(win, { properties: ['openFile'], filters: [{ name: 'Executables', extensions: ['exe'] }] });
     if (!result.canceled && result.filePaths.length > 0) {
         writeConfig({ ...readConfig(), toolFlowPath: result.filePaths[0] });
         return { success: true, path: result.filePaths[0] };
     }
     return { success: false };
+});
+
+ipcMain.handle('retry-job', async (event, { filePath, jobId }) => {
+    return await updateExcelStatus(filePath, [jobId], '');
 });
 
 ipcMain.handle('retry-stuck-jobs', async (event, { filePath }) => {
@@ -576,7 +581,9 @@ ipcMain.handle('execute-ffmpeg-combine', async (event, { jobs, targetDuration, m
 ipcMain.handle('execute-ffmpeg-combine-all', async (event, filesToProcess) => {
     const ffmpegPath = getFfmpegPath();
     if (!fs.existsSync(ffmpegPath)) return { canceled: false, successes: [], failures: ["FFmpeg not found"] };
-    const folderResult = await dialog.showOpenDialog({ properties: ['openDirectory'] });
+    
+    const win = BrowserWindow.getFocusedWindow();
+    const folderResult = await dialog.showOpenDialog(win, { properties: ['openDirectory'] });
     if (folderResult.canceled) return { canceled: true };
     
     const outputDir = folderResult.filePaths[0];

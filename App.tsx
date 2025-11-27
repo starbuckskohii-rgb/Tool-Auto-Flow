@@ -142,10 +142,23 @@ const App: React.FC = () => {
     const totalPrompts = Math.ceil(inputs.duration / shotDuration);
 
     const cleanJsonOutput = (text: string) => {
+        // Robust cleaning: extract the JSON array from Markdown code blocks or plain text
         let clean = text.trim();
-        // Remove markdown code blocks if present
-        clean = clean.replace(/^```json\s*/i, '').replace(/\s*```$/, '');
-        clean = clean.replace(/^```\s*/, '').replace(/\s*```$/, '');
+        
+        // 1. Try to find content inside ```json ... ``` or ``` ... ```
+        const jsonBlockMatch = clean.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+        if (jsonBlockMatch) {
+            clean = jsonBlockMatch[1].trim();
+        }
+
+        // 2. Try to find the array brackets directly [ ... ]
+        const startIndex = clean.indexOf('[');
+        const endIndex = clean.lastIndexOf(']');
+        
+        if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
+            clean = clean.substring(startIndex, endIndex + 1);
+        }
+
         return clean;
     };
 
@@ -427,7 +440,7 @@ const App: React.FC = () => {
                     ${constraints}
 
                     IMPORTANT OUTPUT INSTRUCTION:
-                    Return ONLY VALID JSON. Do NOT wrap it in markdown code blocks (like \`\`\`json). Just the raw JSON array.
+                    Return ONLY VALID JSON. Do NOT wrap it in markdown code blocks (like \`\`\`json). Just the raw JSON array starting with [ and ending with ].
                 `;
 
                 const result = await ai.models.generateContent({
@@ -438,7 +451,17 @@ const App: React.FC = () => {
                 
                 const text = result.text || '[]';
                 const cleanText = cleanJsonOutput(text);
-                const json = JSON.parse(cleanText);
+                
+                let json;
+                try {
+                    json = JSON.parse(cleanText);
+                } catch (err) {
+                    console.error("JSON Parse Error:", err);
+                    console.error("Raw text:", text);
+                    console.error("Cleaned text:", cleanText);
+                    throw new Error("AI trả về định dạng không hợp lệ. Vui lòng thử lại.");
+                }
+                
                 allPrompts.push(...json);
             }
             
