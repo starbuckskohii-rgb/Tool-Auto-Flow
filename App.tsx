@@ -186,7 +186,7 @@ const App: React.FC = () => {
 
             const updateStatusListener = (_: any, status: string, errorMsg?: string) => {
                 setUpdateStatus(status);
-                if (status === 'not-available') alert('Bạn đang sử dụng phiên bản mới nhất.');
+                // Removed the 'not-available' alert to prevent popup spam
                 if (status === 'error' && errorMsg) alert('Lỗi kiểm tra cập nhật: ' + errorMsg);
             };
 
