@@ -3,8 +3,8 @@ import * as XLSX from 'xlsx';
 import { TrackedFile, VideoJob } from '../types';
 import { 
     LoaderIcon, FolderIcon, PlayIcon, RetryIcon, TrashIcon, 
-    VideoIcon, CheckIcon, DownloadIcon, SearchIcon, ExternalLinkIcon, 
-    CogIcon, XCircleIcon 
+    VideoIcon, CheckIcon, SearchIcon, ExternalLinkIcon, 
+    CogIcon, XCircleIcon, LinkIcon
 } from './Icons';
 
 const isElectron = navigator.userAgent.toLowerCase().includes('electron');
@@ -12,7 +12,9 @@ const ipcRenderer = isElectron && (window as any).require ? (window as any).requ
 
 const Tracker: React.FC = () => {
     const [files, setFiles] = useState<TrackedFile[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
+    const [activeFileIndex, setActiveFileIndex] = useState<number>(0);
+    const [loading, setLoading] = useState(false);
+    const [combineMode, setCombineMode] = useState<'normal' | 'timed'>('normal');
     const [feedback, setFeedback] = useState<{type: 'error'|'success', message: string}|null>(null);
     const [expandedFiles, setExpandedFiles] = useState<Set<string>>(new Set());
 
@@ -65,6 +67,11 @@ const Tracker: React.FC = () => {
         }
     };
 
+    const getFileUrl = (path: string) => {
+        if (!path) return '';
+        return `file://${path.replace(/\\/g, '/')}`;
+    };
+
     // Load Files Logic
     const refreshFileStatus = async (currentFiles: TrackedFile[]) => {
         if (!ipcRenderer) return;
@@ -90,7 +97,7 @@ const Tracker: React.FC = () => {
 
     const loadFiles = useCallback(async () => {
         if (!ipcRenderer) return;
-        setIsLoading(true);
+        setLoading(true);
         try {
             const res = await ipcRenderer.invoke('load-tracked-files'); // returns {path, name, content}[]
             if (res.success) {
@@ -107,11 +114,12 @@ const Tracker: React.FC = () => {
                 
                 // Immediate status check
                 await refreshFileStatus(initialFiles);
+                if (initialFiles.length > 0) setActiveFileIndex(0);
             }
         } catch (e) {
             console.error(e);
         } finally {
-            setIsLoading(false);
+            setLoading(false);
         }
     }, []);
 
@@ -176,7 +184,9 @@ const Tracker: React.FC = () => {
     // Handlers
     const handleAddFolder = async () => {
         if (!ipcRenderer) return;
+        setLoading(true);
         const res = await ipcRenderer.invoke('scan-folder-for-excels');
+        setLoading(false);
         if (res.success && res.files.length > 0) {
             const newFiles = res.files.map((f: any) => ({
                 name: f.name,
@@ -198,7 +208,44 @@ const Tracker: React.FC = () => {
             const paths = merged.map(f => f.path).filter(Boolean) as string[];
             ipcRenderer.invoke('save-app-config', { trackedFilePaths: paths });
             refreshFileStatus(merged);
+            if (files.length === 0 && newFiles.length > 0) setActiveFileIndex(0);
         }
+    };
+
+    const handleOpenFile = async () => {
+        if (!ipcRenderer) return;
+        const result = await ipcRenderer.invoke('open-file-dialog');
+        if (result.success && result.files) {
+            const newFiles: TrackedFile[] = [];
+            for (const f of result.files) {
+                if (files.some(existing => existing.path === f.path)) continue;
+                const rawJobs = parseExcelBuffer(f.content);
+                const videoResult = await ipcRenderer.invoke('find-videos-for-jobs', { jobs: rawJobs, excelFilePath: f.path });
+                newFiles.push({
+                    name: f.name,
+                    path: f.path,
+                    jobs: videoResult.success ? videoResult.jobs : rawJobs
+                });
+                ipcRenderer.send('start-watching-file', f.path);
+            }
+            if (newFiles.length > 0) {
+                const updatedFiles = [...files, ...newFiles];
+                setFiles(updatedFiles);
+                setActiveFileIndex(updatedFiles.length - 1);
+                
+                const paths = updatedFiles.map(f => f.path).filter(Boolean) as string[];
+                ipcRenderer.invoke('save-app-config', { trackedFilePaths: paths });
+            }
+        }
+    };
+
+    const handleClearAll = () => {
+        if (!ipcRenderer) return;
+        if (!confirm('Bạn có chắc chắn muốn xóa toàn bộ danh sách file đang theo dõi?')) return;
+        files.forEach(f => { if (f.path) ipcRenderer.send('stop-watching-file', f.path); });
+        setFiles([]);
+        setActiveFileIndex(0);
+        ipcRenderer.invoke('save-app-config', { trackedFilePaths: [] });
     };
 
     const handleRemoveFile = (pathToRemove?: string) => {
@@ -206,15 +253,20 @@ const Tracker: React.FC = () => {
         ipcRenderer.send('stop-watching-file', pathToRemove);
         const newFiles = files.filter(f => f.path !== pathToRemove);
         setFiles(newFiles);
+        if (activeFileIndex >= newFiles.length) setActiveFileIndex(Math.max(0, newFiles.length - 1));
+        
         const paths = newFiles.map(f => f.path).filter(Boolean) as string[];
         ipcRenderer.invoke('save-app-config', { trackedFilePaths: paths });
     };
 
     const handleRetryStuck = async (file: TrackedFile) => {
         if(!ipcRenderer || !file.path) return;
+        if(!confirm('Bạn có muốn reset trạng thái các job đang bị kẹt (Processing/Generating) không?')) return;
+        
         const res = await ipcRenderer.invoke('retry-stuck-jobs', { filePath: file.path });
         if(res.success) {
             setFeedback({ type: 'success', message: 'Đã reset các job bị kẹt!' });
+            refreshFileStatus(files);
         } else {
             setFeedback({ type: 'error', message: res.error });
         }
@@ -229,23 +281,56 @@ const Tracker: React.FC = () => {
         const completedJobs = file.jobs.filter(j => j.videoPath);
         if(completedJobs.length === 0) return setFeedback({type: 'error', message: 'Chưa có video nào hoàn thành'});
         
-        setIsLoading(true);
+        setLoading(true);
         const res = await ipcRenderer.invoke('execute-ffmpeg-combine', {
             jobs: completedJobs,
-            mode: 'concat',
+            mode: combineMode,
             excelFileName: file.name
         });
-        setIsLoading(false);
+        setLoading(false);
         
         if(res.success) setFeedback({type: 'success', message: `Đã ghép video: ${res.filePath}`});
         else setFeedback({type: 'error', message: res.error});
+    };
+    
+    const handleCombineAll = async () => {
+        if (!ipcRenderer) return;
+        const filesWithVideos = files.filter(f => f.jobs.some(j => j.status === 'Completed' && j.videoPath));
+        if (filesWithVideos.length === 0) return setFeedback({type: 'error', message: 'Không có file nào có video hoàn thành.'});
+        if(!confirm(`Bạn sắp ghép video cho ${filesWithVideos.length} file đang mở. Tiếp tục?`)) return;
+
+        setLoading(true);
+        const filesPayload = filesWithVideos.map(f => ({
+            name: f.name,
+            jobs: f.jobs.filter(j => j.status === 'Completed' && j.videoPath)
+        }));
+        const res = await ipcRenderer.invoke('execute-ffmpeg-combine-all', filesPayload);
+        setLoading(false);
+        if (!res.canceled) {
+            let msg = `Đã xử lý xong. Thành công: ${res.successes.length}, Thất bại: ${res.failures.length}`;
+            if (res.failures.length > 0) msg += ` (Lỗi: ${res.failures.join(', ')})`;
+            setFeedback({ type: res.failures.length === 0 ? 'success' : 'error', message: msg });
+        }
+    };
+
+    const handleResetJob = async (job: VideoJob) => {
+        const activeFile = files[activeFileIndex];
+        if (!activeFile || !ipcRenderer || !activeFile.path) return;
+        if (!confirm(`Bạn có chắc muốn tạo lại (reset) Job "${job.id}" không?`)) return;
+
+        setLoading(true);
+        try {
+            await ipcRenderer.invoke('retry-job', { filePath: activeFile.path, jobId: job.id });
+            await refreshFileStatus(files);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleOpenToolFlow = async () => {
         if(!ipcRenderer) return;
         const res = await ipcRenderer.invoke('open-tool-flow');
         if(!res.success) {
-            // If failed, try asking for path
              const setRes = await ipcRenderer.invoke('set-tool-flow-path');
              if(setRes.success) {
                  await ipcRenderer.invoke('open-tool-flow');
@@ -266,9 +351,35 @@ const Tracker: React.FC = () => {
     const openVideo = (videoPath?: string) => {
         if(videoPath && ipcRenderer) ipcRenderer.send('open-video-path', videoPath);
     }
+    
+    const handleVideoAction = (action: 'play' | 'folder' | 'delete', job: VideoJob) => {
+        if (!ipcRenderer || !job.videoPath) return;
+        if (action === 'play') ipcRenderer.send('open-video-path', job.videoPath);
+        if (action === 'folder') ipcRenderer.send('show-video-in-folder', job.videoPath);
+        if (action === 'delete') {
+             ipcRenderer.invoke('delete-video-file', job.videoPath).then((res: any) => {
+                 if (res.success) refreshFileStatus(files);
+             });
+        }
+    };
+
+    const copyFolderPath = () => {
+        const activeFile = files[activeFileIndex];
+        if(activeFile && activeFile.path && isElectron) {
+             const folder = activeFile.path.substring(0, activeFile.path.lastIndexOf((navigator.platform.indexOf("Win") > -1 ? "\\" : "/")));
+             navigator.clipboard.writeText(folder);
+             setFeedback({ type: 'success', message: 'Đã copy đường dẫn thư mục!' });
+        }
+    };
+
+    const activeFile = files[activeFileIndex];
+    const fileTotal = activeFile ? activeFile.jobs.length : 0;
+    const fileCompleted = activeFile ? activeFile.jobs.filter(j => j.status === 'Completed').length : 0;
+    const fileProcessing = activeFile ? activeFile.jobs.filter(j => j.status === 'Processing' || j.status === 'Generating').length : 0;
+    const filePercent = fileTotal > 0 ? Math.round((fileCompleted / fileTotal) * 100) : 0;
 
     return (
-        <div className="space-y-6 animate-fade-in-up">
+        <div className="space-y-4 animate-fade-in-up flex flex-col h-[calc(100vh-100px)]">
             {feedback && (
                 <div className={`fixed top-24 right-4 z-[90] p-4 rounded-xl shadow-2xl border flex items-center gap-3 animate-bounce-in ${feedback.type === 'error' ? 'bg-red-50 border-red-200 text-red-800' : 'bg-green-50 border-green-200 text-green-800'}`}>
                     {feedback.type === 'error' ? <XCircleIcon className="w-6 h-6"/> : <CheckIcon className="w-6 h-6"/>}
@@ -278,7 +389,7 @@ const Tracker: React.FC = () => {
             )}
 
             {/* Global Top Bar */}
-            <div className="bg-white/80 backdrop-blur-md rounded-2xl p-3 mb-4 flex items-center justify-between shadow-sm border border-green-100">
+            <div className="bg-white/80 backdrop-blur-md rounded-2xl p-3 mb-2 flex items-center justify-between shadow-sm border border-green-100">
                  <div className="flex items-center gap-6 px-4">
                     {/* Total Files */}
                     <div className="flex flex-col items-center">
@@ -324,115 +435,201 @@ const Tracker: React.FC = () => {
                  </div>
             </div>
 
-            {isLoading && files.length === 0 && <div className="text-center py-10"><LoaderIcon /></div>}
+            {loading && files.length === 0 && <div className="text-center py-10"><LoaderIcon /></div>}
 
-            <div className="grid grid-cols-1 gap-4">
-                {files.map(file => {
-                    const fTotal = file.jobs.length;
-                    const fDone = file.jobs.filter(j => j.videoPath || j.status === 'Completed').length;
-                    const fPercent = fTotal > 0 ? Math.round((fDone/fTotal)*100) : 0;
-                    const isExpanded = expandedFiles.has(file.path || '');
-                    
-                    const stuckCount = file.jobs.filter(j => j.status === 'Processing' || j.status === 'Generating').length;
+            {files.length === 0 && !loading ? (
+                <div className="flex flex-col items-center justify-center h-[60vh] text-center p-10 bg-white/50 rounded-3xl border-2 border-dashed border-gray-300">
+                    <FolderIcon className="w-20 h-20 text-gray-300 mb-6" />
+                    <h3 className="text-2xl font-bold text-gray-500 mb-2">Chưa theo dõi dự án nào</h3>
+                    <p className="text-gray-400 mb-8 max-w-md">Hãy mở file Excel kịch bản hoặc quét thư mục dự án để bắt đầu quy trình tự động hóa.</p>
+                    <div className="flex gap-4">
+                        <button onClick={handleOpenFile} className="px-8 py-4 bg-red-600 text-white rounded-2xl font-bold text-lg shadow-xl hover:scale-105 transition flex items-center gap-3 hover:bg-red-700">
+                            <FolderIcon className="w-6 h-6"/> Mở File Excel
+                        </button>
+                        <button onClick={handleAddFolder} className="bg-white text-green-700 border-2 border-green-100 px-8 py-4 rounded-2xl font-bold text-lg shadow-md hover:bg-green-50 transition flex items-center gap-3">
+                            <SearchIcon className="w-6 h-6"/> Quét Thư Mục
+                        </button>
+                    </div>
+                </div>
+            ) : (
+                <div className="flex gap-4 flex-1 overflow-hidden">
+                    {/* Left Sidebar */}
+                    <div className="w-[260px] flex flex-col gap-2 overflow-y-auto pr-1 pb-4 custom-scrollbar">
+                        {files.map((f, idx) => {
+                            const total = f.jobs.length;
+                            const completed = f.jobs.filter(j => j.status === 'Completed').length;
+                            const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+                            const isActive = idx === activeFileIndex;
 
-                    return (
-                        <div key={file.path} className={`bg-white border rounded-xl shadow-sm transition-all duration-300 ${fPercent === 100 ? 'border-green-200 shadow-green-50' : 'border-gray-200'}`}>
-                            {/* File Header */}
-                            <div className="p-4 flex items-center justify-between">
-                                <div className="flex items-center gap-4 flex-1 cursor-pointer" onClick={() => toggleExpand(file.path)}>
-                                    <div className={`p-3 rounded-full ${fPercent === 100 ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'}`}>
-                                        {fPercent === 100 ? <CheckIcon className="w-5 h-5"/> : <VideoIcon className="w-5 h-5"/>}
-                                    </div>
-                                    <div className="flex-1">
-                                        <h3 className="font-bold text-gray-800 text-sm truncate w-64 md:w-auto">{file.name}</h3>
-                                        <div className="flex items-center gap-3 mt-1">
-                                            <div className="w-32 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                                                <div className={`h-full rounded-full ${fPercent===100?'bg-green-500':'bg-blue-500'}`} style={{width: `${fPercent}%`}}></div>
+                            return (
+                                <div 
+                                    key={idx}
+                                    onClick={() => setActiveFileIndex(idx)}
+                                    className={`
+                                        relative p-3 rounded-xl cursor-pointer transition-all duration-200 border group
+                                        ${isActive 
+                                            ? 'bg-white border-red-200 shadow-md z-10 ring-1 ring-red-100' 
+                                            : 'bg-white/60 border-transparent hover:bg-white/80'
+                                        }
+                                    `}
+                                >
+                                    <div className="flex justify-between items-start mb-2">
+                                        <div className="flex items-center gap-2 overflow-hidden">
+                                            <div className={`p-1.5 rounded-full flex-shrink-0 ${percent === 100 ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
+                                                {percent === 100 ? <CheckIcon className="w-3 h-3"/> : <VideoIcon className="w-3 h-3"/>}
                                             </div>
-                                            <span className="text-[10px] font-bold text-gray-400">{fDone}/{fTotal} ({fPercent}%)</span>
+                                            <div className={`font-bold text-sm truncate ${isActive ? 'text-red-800' : 'text-gray-500'}`} title={f.name}>{f.name}</div>
+                                        </div>
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); handleRemoveFile(f.path); }}
+                                            className="text-gray-300 hover:text-red-500 p-0.5 rounded-full hover:bg-red-50 transition opacity-0 group-hover:opacity-100"
+                                        >
+                                            <TrashIcon className="w-3 h-3" />
+                                        </button>
+                                    </div>
+                                    <div className="w-full bg-gray-200 rounded-full h-1 overflow-hidden">
+                                        <div 
+                                            className={`h-full rounded-full transition-all duration-500 ${percent === 100 ? 'bg-green-500' : 'bg-red-400'}`} 
+                                            style={{ width: `${percent}%` }}
+                                        />
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    {/* Right Main Content */}
+                    <div className="flex-1 flex flex-col gap-4 overflow-hidden">
+                        {activeFile && (
+                            <>
+                                {/* Detailed Header & Toolbar */}
+                                <div className="bg-white/70 backdrop-blur-md p-1 rounded-2xl border border-white/60 shadow-sm flex flex-col gap-1">
+                                    {/* Stats Row */}
+                                    <div className="flex items-center p-3 gap-4">
+                                        <div className="flex-1 min-w-0">
+                                            <h2 className="text-lg font-extrabold text-gray-800 truncate" title={activeFile.name}>{activeFile.name}</h2>
+                                            <p className="text-[10px] text-gray-400 font-mono mt-0.5 truncate cursor-pointer hover:text-red-600" onClick={copyFolderPath}>{activeFile.path}</p>
+                                        </div>
+                                        
+                                        <div className="flex gap-3">
+                                            <div className="bg-red-50 px-4 py-2 rounded-xl border border-red-100 min-w-[100px]">
+                                                <div className="text-[9px] font-bold text-red-400 uppercase tracking-wide mb-1">Tổng Job</div>
+                                                <div className="text-xl font-black text-red-600 leading-none">{fileTotal}</div>
+                                            </div>
+                                            <div className="bg-green-50 px-4 py-2 rounded-xl border border-green-100 min-w-[100px]">
+                                                <div className="text-[9px] font-bold text-green-500 uppercase tracking-wide mb-1">Hoàn thành</div>
+                                                <div className="text-xl font-black text-green-600 leading-none">{fileCompleted}</div>
+                                            </div>
+                                            <div className="bg-yellow-50 px-4 py-2 rounded-xl border border-yellow-100 min-w-[100px]">
+                                                <div className="text-[9px] font-bold text-yellow-600 uppercase tracking-wide mb-1">Đang xử lý</div>
+                                                <div className="text-xl font-black text-yellow-600 leading-none">{fileProcessing}</div>
+                                            </div>
+                                            <div className="pl-4 border-l border-gray-200 flex flex-col justify-center items-end min-w-[60px]">
+                                                <div className="text-2xl font-black text-gray-700">{filePercent}<span className="text-sm text-gray-400">%</span></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Toolbar Row */}
+                                    <div className="bg-white/50 rounded-xl px-4 py-2 flex items-center justify-between">
+                                        <div className="flex items-center gap-4 text-xs font-bold text-gray-500">
+                                            <span className="uppercase tracking-wider text-[10px]">Ghép Video:</span>
+                                            <label className="flex items-center gap-1.5 cursor-pointer hover:text-red-600 transition"><input type="radio" name="combine" checked={combineMode==='normal'} onChange={()=>setCombineMode('normal')} className="accent-red-600 w-3 h-3"/> Nối thường</label>
+                                            <label className="flex items-center gap-1.5 cursor-pointer hover:text-red-600 transition"><input type="radio" name="combine" checked={combineMode==='timed'} onChange={()=>setCombineMode('timed')} className="accent-red-600 w-3 h-3"/> Theo thời gian</label>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <button onClick={() => handleCombine(activeFile)} className="px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-red-600 text-xs font-bold shadow-sm hover:shadow hover:text-red-700 transition">Ghép File Này</button>
+                                            <button onClick={handleCombineAll} className="px-3 py-1.5 rounded-lg bg-red-600 text-white border border-transparent text-xs font-bold shadow-sm hover:bg-red-700 transition">Ghép Tất Cả</button>
+                                            <div className="h-4 w-px bg-gray-300 mx-2"></div>
+                                            <button onClick={() => refreshFileStatus([activeFile])} className="p-1.5 rounded-lg text-gray-400 hover:bg-white hover:text-green-600 transition" title="Làm mới"><LinkIcon className="w-4 h-4"/></button>
+                                            <button onClick={() => handleRetryStuck(activeFile)} className="p-1.5 rounded-lg text-gray-400 hover:bg-white hover:text-orange-500 transition" title="Sửa lỗi kẹt"><RetryIcon className="w-4 h-4"/></button>
                                         </div>
                                     </div>
                                 </div>
-                                
-                                <div className="flex items-center gap-2">
-                                    {stuckCount > 0 && (
-                                        <button onClick={() => handleRetryStuck(file)} className="px-3 py-1.5 bg-orange-100 text-orange-600 rounded-md text-[10px] font-bold hover:bg-orange-200 transition flex items-center gap-1 animate-pulse">
-                                            <RetryIcon className="w-3 h-3"/> Reset {stuckCount} Stuck
-                                        </button>
-                                    )}
-                                    <button onClick={() => handleCombine(file)} className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition" title="Ghép Video">
-                                        <CogIcon className="w-4 h-4"/>
-                                    </button>
-                                    <button onClick={() => handleOpenFolder(file.path)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition" title="Mở Thư Mục">
-                                        <ExternalLinkIcon className="w-4 h-4"/>
-                                    </button>
-                                    <button onClick={() => handleRemoveFile(file.path)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Xóa khỏi danh sách">
-                                        <TrashIcon className="w-4 h-4"/>
-                                    </button>
-                                </div>
-                            </div>
 
-                            {/* Job List */}
-                            {isExpanded && (
-                                <div className="border-t border-gray-100 bg-gray-50/50 p-4 max-h-96 overflow-y-auto custom-scrollbar">
-                                    <table className="w-full text-left text-xs">
-                                        <thead className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                                            <tr>
-                                                <th className="pb-2">ID</th>
-                                                <th className="pb-2">Prompt</th>
-                                                <th className="pb-2">Trạng thái</th>
-                                                <th className="pb-2 text-right">Hành động</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-gray-100">
-                                            {file.jobs.map(job => (
-                                                <tr key={job.id} className="hover:bg-white transition-colors group">
-                                                    <td className="py-2 font-mono text-gray-500 font-medium w-16">{job.id}</td>
-                                                    <td className="py-2 text-gray-700 w-1/2 pr-4">
-                                                        <div className="truncate max-w-md" title={job.prompt}>{job.prompt}</div>
-                                                    </td>
-                                                    <td className="py-2">
-                                                        {job.videoPath ? (
-                                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700">
-                                                                <CheckIcon className="w-3 h-3"/> Done
-                                                            </span>
-                                                        ) : (
-                                                            <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold ${
-                                                                job.status === 'Processing' ? 'bg-blue-100 text-blue-700 animate-pulse' :
-                                                                job.status === 'Failed' ? 'bg-red-100 text-red-700' :
-                                                                'bg-gray-200 text-gray-600'
-                                                            }`}>
-                                                                {job.status}
-                                                            </span>
-                                                        )}
-                                                    </td>
-                                                    <td className="py-2 text-right">
-                                                        {job.videoPath && (
-                                                            <button onClick={() => openVideo(job.videoPath)} className="text-blue-500 hover:text-blue-700 font-bold text-[10px] flex items-center justify-end gap-1 ml-auto">
-                                                                <PlayIcon className="w-3 h-3"/> Xem
-                                                            </button>
-                                                        )}
-                                                    </td>
+                                {/* Job Table */}
+                                <div className="flex-1 bg-white/40 backdrop-blur-sm rounded-2xl overflow-hidden shadow-sm flex flex-col border border-white/60">
+                                    <div className="overflow-y-auto flex-1 custom-scrollbar">
+                                        <table className="w-full text-sm text-left">
+                                            <thead className="sticky top-0 z-10 bg-white/90 backdrop-blur-md shadow-sm">
+                                                <tr>
+                                                    <th className="px-6 py-3 w-20 text-gray-400 font-extrabold uppercase text-[10px] tracking-widest">ID</th>
+                                                    <th className="px-6 py-3 w-48 text-gray-400 font-extrabold uppercase text-[10px] tracking-widest">Video Preview</th>
+                                                    <th className="px-6 py-3 w-32 text-center text-gray-400 font-extrabold uppercase text-[10px] tracking-widest">Trạng thái</th>
+                                                    <th className="px-6 py-3 text-right text-gray-400 font-extrabold uppercase text-[10px] tracking-widest">Hành động</th>
                                                 </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )}
-                        </div>
-                    );
-                })}
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-100">
+                                                {activeFile.jobs.map((job, jIdx) => (
+                                                    <tr key={job.id + jIdx} className="hover:bg-white/50 transition group">
+                                                        <td className="px-6 py-4 align-top pt-6">
+                                                            <div className="font-mono font-bold text-gray-400 text-xs group-hover:text-red-500 transition">{job.id}</div>
+                                                            <div className="text-[9px] text-gray-300 mt-1 line-clamp-2 w-20 group-hover:text-gray-400 transition" title={job.prompt}>
+                                                                {job.prompt}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-3">
+                                                            {job.videoPath ? (
+                                                                <div className="relative w-40 h-24 rounded-xl overflow-hidden shadow-sm border border-gray-200 group-hover:shadow-lg group-hover:scale-[1.02] transition bg-black cursor-pointer group/video">
+                                                                    <video 
+                                                                        src={getFileUrl(job.videoPath)}
+                                                                        className="w-full h-full object-cover opacity-90 group-hover/video:opacity-100 transition"
+                                                                        preload="metadata"
+                                                                        muted
+                                                                        loop
+                                                                        onMouseOver={e => e.currentTarget.play().catch(()=>{})}
+                                                                        onMouseOut={e => e.currentTarget.pause()}
+                                                                    />
+                                                                    <div className="absolute bottom-1 right-1 bg-black/60 text-white text-[9px] px-1.5 py-0.5 rounded font-medium backdrop-blur-sm pointer-events-none">Preview</div>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="w-40 h-24 rounded-xl bg-gray-50/50 border border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-300">
+                                                                    <PlayIcon className="w-6 h-6 opacity-20 mb-1" />
+                                                                    <span className="text-[9px] font-bold opacity-50">No Video</span>
+                                                                </div>
+                                                            )}
+                                                        </td>
+                                                        <td className="px-6 py-4 text-center align-middle">
+                                                            <span className={`inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-[10px] font-black shadow-sm uppercase tracking-wider border ${
+                                                                job.status === 'Completed' ? 'bg-green-100 text-green-700 border-green-200' :
+                                                                job.status === 'Processing' || job.status === 'Generating' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                                                                'bg-gray-100 text-gray-500 border-gray-200'
+                                                            }`}>
+                                                                {job.status || 'Pending'}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-4 align-middle">
+                                                            <div className="flex justify-end items-center gap-2">
+                                                                <button 
+                                                                    onClick={() => handleResetJob(job)} 
+                                                                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-50 text-gray-400 hover:bg-red-500 hover:text-white transition-all duration-200 shadow-sm hover:shadow-md border border-gray-100" 
+                                                                    title="Tạo lại (Reset)"
+                                                                >
+                                                                    <RetryIcon className="w-4 h-4" />
+                                                                </button>
 
-                {files.length === 0 && !isLoading && (
-                    <div className="text-center py-12 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50/50">
-                        <FolderIcon className="w-12 h-12 text-gray-300 mx-auto mb-3"/>
-                        <p className="text-gray-500 font-bold mb-4">Chưa có folder nào được theo dõi</p>
-                        <button onClick={handleAddFolder} className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold shadow-lg hover:bg-blue-700 transition">
-                            Thêm Folder Ngay
-                        </button>
+                                                                {job.videoPath ? (
+                                                                    <>
+                                                                        <button onClick={() => handleVideoAction('play', job)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-green-50 text-green-600 hover:bg-green-500 hover:text-white transition-all duration-200 shadow-sm hover:shadow-md border border-green-100" title="Xem video"><PlayIcon className="w-4 h-4"/></button>
+                                                                        <button onClick={() => handleVideoAction('folder', job)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-500 hover:text-white transition-all duration-200 shadow-sm hover:shadow-md border border-blue-100" title="Mở thư mục"><FolderIcon className="w-4 h-4"/></button>
+                                                                        <button onClick={() => handleVideoAction('delete', job)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all duration-200 shadow-sm hover:shadow-md border border-red-100" title="Xóa video"><TrashIcon className="w-4 h-4"/></button>
+                                                                    </>
+                                                                ) : (
+                                                                    <div className="w-[120px]"></div>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </>
+                        )}
                     </div>
-                )}
-            </div>
+                </div>
+            )}
         </div>
     );
 };

@@ -1,3 +1,4 @@
+
 export type ActiveTab = 'generator' | 'tracker';
 export type GeneratorTab = 'jesus' | 'trending' | 'seasonal' | 'looping' | 'cafe' | 'starbucks' | 'concert' | 'stage';
 export type JobStatus = 'Pending' | 'Processing' | 'Generating' | 'Completed' | 'Failed';
