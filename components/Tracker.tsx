@@ -13,7 +13,9 @@ import {
   CogIcon,
   SearchIcon,
   LinkIcon,
-  UploadIcon
+  UploadIcon,
+  ChevronUpIcon,
+  ChevronDownIcon
 } from './Icons';
 
 const isElectron = navigator.userAgent.toLowerCase().includes('electron');
@@ -32,6 +34,7 @@ const Tracker: React.FC = () => {
     const [activeFileIndex, setActiveFileIndex] = useState<number>(0);
     const [loading, setLoading] = useState(false);
     const [combineMode, setCombineMode] = useState<'normal' | 'timed'>('normal');
+    const [isStatsExpanded, setIsStatsExpanded] = useState(true);
 
     // Stats
     const totalFiles = files.length;
@@ -411,7 +414,7 @@ const Tracker: React.FC = () => {
                         ? 'border-transparent hover:shadow-lg' 
                         : 'border-dashed border-gray-300 hover:border-blue-400 bg-gray-50 hover:bg-blue-50'
                     }
-                    ${job.typeVideo === 'I2V' ? 'w-20 h-20' : 'w-16 h-16'}
+                    ${job.typeVideo === 'I2V' ? 'w-24 h-24' : 'w-20 h-20'}
                 `}
                 title={`Upload Image ${slotIndex}`}
             >
@@ -465,52 +468,71 @@ const Tracker: React.FC = () => {
     return (
         <div className="flex flex-col h-[calc(100vh-100px)]">
             
-            {/* Global Top Bar */}
-            <div className="bg-white/80 backdrop-blur-md rounded-2xl p-2 mb-4 flex items-center justify-between shadow-sm border border-green-100 h-20">
-                 {/* Left Side: Stats Dashboard */}
-                 <div className="flex items-center h-full">
-                    <div className="px-6 flex flex-col justify-center h-full border-r border-gray-100">
-                        <span className="text-[10px] text-gray-400 font-extrabold uppercase tracking-widest mb-1">FILE HOÀN THÀNH</span>
-                        <div className="flex items-baseline gap-1">
-                             <span className="text-3xl font-black text-red-600 leading-none">{completedFilesCount}</span>
-                             <span className="text-xl font-bold text-gray-300">/</span>
-                             <span className="text-xl font-bold text-gray-400">{totalFiles}</span>
+            {/* Global Top Bar (Collapsible) */}
+            <div className={`transition-all duration-300 ease-in-out bg-white/80 backdrop-blur-md rounded-2xl p-2 mb-2 shadow-sm border border-green-100 relative overflow-hidden ${isStatsExpanded ? 'h-20 opacity-100' : 'h-0 opacity-0 mb-0 border-0 p-0'}`}>
+                 <div className="flex items-center h-full justify-between">
+                     {/* Left Side: Stats Dashboard */}
+                     <div className="flex items-center h-full">
+                        <div className="px-6 flex flex-col justify-center h-full border-r border-gray-100">
+                            <span className="text-[10px] text-gray-400 font-extrabold uppercase tracking-widest mb-1">FILE HOÀN THÀNH</span>
+                            <div className="flex items-baseline gap-1">
+                                 <span className="text-3xl font-black text-red-600 leading-none">{completedFilesCount}</span>
+                                 <span className="text-xl font-bold text-gray-300">/</span>
+                                 <span className="text-xl font-bold text-gray-400">{totalFiles}</span>
+                            </div>
                         </div>
-                    </div>
 
-                    <div className="px-6 flex flex-col justify-center h-full border-r border-gray-100">
-                        <span className="text-[10px] text-gray-400 font-extrabold uppercase tracking-widest mb-1">JOBS HOÀN THÀNH</span>
-                        <div className="flex items-baseline gap-1">
-                            <span className="text-3xl font-black text-green-600 leading-none">{totalCompleted}</span>
-                            <span className="text-xl font-bold text-gray-300">/</span>
-                            <span className="text-xl font-bold text-gray-400">{totalJobs}</span>
+                        <div className="px-6 flex flex-col justify-center h-full border-r border-gray-100">
+                            <span className="text-[10px] text-gray-400 font-extrabold uppercase tracking-widest mb-1">JOBS HOÀN THÀNH</span>
+                            <div className="flex items-baseline gap-1">
+                                <span className="text-3xl font-black text-green-600 leading-none">{totalCompleted}</span>
+                                <span className="text-xl font-bold text-gray-300">/</span>
+                                <span className="text-xl font-bold text-gray-400">{totalJobs}</span>
+                            </div>
                         </div>
-                    </div>
 
-                    <div className="px-6 flex flex-col justify-center h-full min-w-[200px]">
-                         <div className="flex justify-between items-end mb-2">
-                             <span className="text-[10px] text-gray-400 font-extrabold uppercase tracking-widest">TIẾN ĐỘ</span>
-                             <span className="text-lg font-black text-gray-600 leading-none">{globalPercent}%</span>
-                         </div>
-                         <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
-                             <div 
-                                className={`h-full rounded-full transition-all duration-700 ease-out ${globalPercent === 100 ? 'bg-green-500' : 'bg-gray-300'}`} 
-                                style={{ width: `${globalPercent}%` }}
-                            ></div>
-                         </div>
-                    </div>
-                 </div>
+                        <div className="px-6 flex flex-col justify-center h-full min-w-[200px]">
+                             <div className="flex justify-between items-end mb-2">
+                                 <span className="text-[10px] text-gray-400 font-extrabold uppercase tracking-widest">TIẾN ĐỘ</span>
+                                 <span className="text-lg font-black text-gray-600 leading-none">{globalPercent}%</span>
+                             </div>
+                             <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+                                 <div 
+                                    className={`h-full rounded-full transition-all duration-700 ease-out ${globalPercent === 100 ? 'bg-green-500' : 'bg-gray-300'}`} 
+                                    style={{ width: `${globalPercent}%` }}
+                                ></div>
+                             </div>
+                        </div>
+                     </div>
 
-                 <div className="flex items-center gap-2 pr-2">
-                     <button onClick={handleOpenFile} className="p-2.5 rounded-xl bg-red-50 text-red-600 hover:bg-red-600 hover:text-white hover:shadow-md transition" title="Mở thêm file"><FolderIcon className="w-5 h-5" /></button>
-                     <button onClick={handleScanFolder} className="p-2.5 rounded-xl bg-green-50 text-green-600 hover:bg-green-600 hover:text-white hover:shadow-md transition" title="Quét thư mục"><SearchIcon className="w-5 h-5" /></button>
-                     <button onClick={handleClearAll} className="p-2.5 rounded-xl bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-red-500 hover:shadow-md transition" title="Xóa tất cả"><TrashIcon className="w-5 h-5" /></button>
-                     <div className="h-6 w-px bg-gray-200 mx-2"></div>
-                     <button onClick={handleOpenToolFlow} className="bg-gray-800 text-white px-4 py-2.5 rounded-xl font-bold text-xs hover:bg-gray-700 flex items-center gap-2 shadow-lg transition transform hover:-translate-y-0.5 border border-gray-600">
-                        <ExternalLinkIcon className="w-3 h-3"/> ToolFlows
-                    </button>
-                    <button onClick={() => ipcRenderer.invoke('set-tool-flow-path')} className="p-2.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-xl transition"><CogIcon className="w-5 h-5"/></button>
+                     <div className="flex items-center gap-2 pr-2">
+                         <button onClick={handleOpenFile} className="p-2.5 rounded-xl bg-red-50 text-red-600 hover:bg-red-600 hover:text-white hover:shadow-md transition" title="Mở thêm file"><FolderIcon className="w-5 h-5" /></button>
+                         <button onClick={handleScanFolder} className="p-2.5 rounded-xl bg-green-50 text-green-600 hover:bg-green-600 hover:text-white hover:shadow-md transition" title="Quét thư mục"><SearchIcon className="w-5 h-5" /></button>
+                         <button onClick={handleClearAll} className="p-2.5 rounded-xl bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-red-500 hover:shadow-md transition" title="Xóa tất cả"><TrashIcon className="w-5 h-5" /></button>
+                         <div className="h-6 w-px bg-gray-200 mx-2"></div>
+                         <button onClick={handleOpenToolFlow} className="bg-gray-800 text-white px-4 py-2.5 rounded-xl font-bold text-xs hover:bg-gray-700 flex items-center gap-2 shadow-lg transition transform hover:-translate-y-0.5 border border-gray-600">
+                            <ExternalLinkIcon className="w-3 h-3"/> ToolFlows
+                        </button>
+                        <button onClick={() => ipcRenderer.invoke('set-tool-flow-path')} className="p-2.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-xl transition"><CogIcon className="w-5 h-5"/></button>
+                     </div>
                  </div>
+            </div>
+
+            {/* Collapse/Expand Toggle Bar */}
+            <div className="flex justify-center -mt-2 mb-2 z-20 relative">
+                <button 
+                    onClick={() => setIsStatsExpanded(!isStatsExpanded)} 
+                    className="bg-white border border-gray-200 shadow-sm text-gray-400 hover:text-gray-600 rounded-b-lg px-6 py-0.5 flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider hover:bg-gray-50 transition"
+                >
+                    {isStatsExpanded ? <><ChevronUpIcon className="w-3 h-3"/> Hide Stats</> : <><ChevronDownIcon className="w-3 h-3"/> Show Dashboard</>}
+                </button>
+                {/* If collapsed, show mini actions */}
+                {!isStatsExpanded && (
+                    <div className="absolute right-0 top-0 flex items-center gap-1">
+                         <button onClick={handleOpenFile} className="p-1 rounded bg-red-50 text-red-600 hover:bg-red-100 transition" title="Mở File"><FolderIcon className="w-4 h-4" /></button>
+                         <button onClick={handleOpenToolFlow} className="p-1 rounded bg-gray-800 text-white hover:bg-gray-700 transition" title="ToolFlows"><ExternalLinkIcon className="w-4 h-4" /></button>
+                    </div>
+                )}
             </div>
 
             {/* Main Split Layout */}
@@ -593,7 +615,9 @@ const Tracker: React.FC = () => {
                                                 
                                                 {/* UI Improvement: Wider & Center columns */}
                                                 <th className="px-6 py-3 w-32 text-center text-gray-400 font-extrabold uppercase text-[10px] tracking-widest">Type Video</th>
-                                                <th className="px-6 py-3 w-64 text-left text-gray-400 font-extrabold uppercase text-[10px] tracking-widest">Reference Images</th>
+                                                
+                                                {/* Increased Width for Reference Images */}
+                                                <th className="px-6 py-3 w-[420px] text-left text-gray-400 font-extrabold uppercase text-[10px] tracking-widest">Reference Images</th>
                                                 
                                                 <th className="px-6 py-3 w-24 text-center text-gray-400 font-extrabold uppercase text-[10px] tracking-widest">Trạng thái</th>
                                                 <th className="px-6 py-3 text-right text-gray-400 font-extrabold uppercase text-[10px] tracking-widest">Hành động</th>
