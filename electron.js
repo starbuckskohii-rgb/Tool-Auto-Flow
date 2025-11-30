@@ -280,20 +280,16 @@ async function updateExcelJobFields(filePath, jobId, updates) {
         
         if (jobIdIndex === -1) throw new Error('JOB_ID column not found');
 
-        // Map update keys to column indices
         const updateMap = {};
         for (const [key, val] of Object.entries(updates)) {
-            const colIndex = headers.indexOf(key);
-            if (colIndex !== -1) {
-                updateMap[colIndex] = val;
-            } else {
-                 // Option: Add column if missing? For now, ignore or throw.
-                 // Let's create column if missing (simple append)
-                 const newColIndex = headers.length;
+            let colIndex = headers.indexOf(key);
+            if (colIndex === -1) {
+                 // Create column if missing
+                 colIndex = headers.length;
                  headers.push(key);
-                 dataAsArrays[0][newColIndex] = key;
-                 updateMap[newColIndex] = val;
+                 dataAsArrays[0][colIndex] = key;
             }
+            updateMap[colIndex] = val;
         }
 
         let found = false;
@@ -365,7 +361,6 @@ function createWindow() {
   autoUpdater.on('update-not-available', () => mainWindow?.webContents.send('update-status', 'not-available'));
   
   autoUpdater.on('error', (err) => {
-      // Filter out non-critical errors or errors handled elsewhere
       console.warn("Update error:", err.message);
       if (!err.message.includes('valid semver')) {
         mainWindow?.webContents.send('update-status', 'error', err.message);
@@ -381,7 +376,6 @@ function createWindow() {
       mainWindow?.webContents.send('update-status', 'downloaded');
   });
 
-  // Try to check for updates, but catch errors to prevent app crash on startup
   if (!isDev) {
       try {
         autoUpdater.checkForUpdates();
@@ -443,7 +437,6 @@ ipcMain.handle('check-for-updates', () => {
         console.error("IPC update check failed", e);
     }
 });
-// Handler để bắt đầu tải xuống khi người dùng đồng ý
 ipcMain.handle('start-download-update', () => {
     try {
         autoUpdater.downloadUpdate();
@@ -549,7 +542,6 @@ ipcMain.on('start-watching-file', (event, filePath) => {
                             const buffer = fs.readFileSync(filePath);
                             const { updatedJobs } = syncStatsAndState(filePath, parseExcelData(buffer), false);
                             
-                            // Stuck check update
                             const jobMap = jobStateTimestamps.get(filePath);
                             const now = Date.now();
                             updatedJobs.forEach(job => {

@@ -1,6 +1,6 @@
 
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import { TrackedFile, VideoJob } from '../types';
 import { 
@@ -19,18 +19,30 @@ import {
 const isElectron = navigator.userAgent.toLowerCase().includes('electron');
 const ipcRenderer = isElectron && (window as any).require ? (window as any).require('electron').ipcRenderer : null;
 
+// New Icon for Adding Images
+const PlusIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+    </svg>
+);
+
 const Tracker: React.FC = () => {
     const [files, setFiles] = useState<TrackedFile[]>([]);
     const [activeFileIndex, setActiveFileIndex] = useState<number>(0);
     const [loading, setLoading] = useState(false);
     const [combineMode, setCombineMode] = useState<'normal' | 'timed'>('normal');
 
-    // Global Stats Calculation
+    // Stats
     const totalFiles = files.length;
     const completedFilesCount = files.filter(f => f.jobs.length > 0 && f.jobs.every(j => j.status === 'Completed')).length;
     const totalJobs = files.reduce((acc, f) => acc + f.jobs.length, 0);
     const totalCompleted = files.reduce((acc, f) => acc + f.jobs.filter(j => j.status === 'Completed').length, 0);
     const globalPercent = totalJobs > 0 ? Math.round((totalCompleted / totalJobs) * 100) : 0;
+
+    // Helper: Hidden File Input Ref for specific slot uploads
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [uploadContext, setUploadContext] = useState<{ jobId: string, slotIndex: number } | null>(null);
 
     // --- Helpers ---
     const parseExcel = (bufferInput: any): VideoJob[] => {
@@ -332,72 +344,94 @@ const Tracker: React.FC = () => {
                 jobId: job.id, 
                 updates: { 'TYPE_VIDEO': newType }
             });
-            handleRefresh(); // Refresh UI after backend update
+            handleRefresh();
         } finally {
             setLoading(false);
         }
     };
 
-    const handleImageUpload = async (job: VideoJob, e: React.ChangeEvent<HTMLInputElement>) => {
-        const activeFile = files[activeFileIndex];
-        if (!activeFile || !ipcRenderer || !activeFile.path) return;
-        
-        const selectedFiles = e.target.files;
-        if (!selectedFiles || selectedFiles.length === 0) return;
+    const triggerImageUpload = (jobId: string, slotIndex: number) => {
+        setUploadContext({ jobId, slotIndex });
+        if (fileInputRef.current) {
+            fileInputRef.current.value = ''; // Reset input
+            fileInputRef.current.click();
+        }
+    };
 
-        // Validation
-        const type = job.typeVideo.toUpperCase();
-        if (!type) return alert("Vui lòng chọn Type Video trước.");
+    const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const activeFile = files[activeFileIndex];
+        if (!activeFile || !ipcRenderer || !activeFile.path || !uploadContext) return;
         
-        if (type === 'I2V' && selectedFiles.length > 1) {
-            return alert("Chế độ I2V chỉ hỗ trợ tải lên 1 ảnh duy nhất.");
-        }
-        if (type === 'IN2V' && selectedFiles.length > 3) {
-            return alert("Chế độ IN2V chỉ hỗ trợ tối đa 3 ảnh.");
-        }
-        
+        const file = e.target.files?.[0];
+        if (!file) return;
+
         setLoading(true);
         try {
-            const updates: Record<string, string> = {};
+            const arrayBuffer = await file.arrayBuffer();
+            const buffer = new Uint8Array(arrayBuffer);
+            const ext = file.name.substring(file.name.lastIndexOf('.'));
             
-            // Process each file
-            for (let i = 0; i < selectedFiles.length; i++) {
-                const file = selectedFiles[i];
-                const arrayBuffer = await file.arrayBuffer();
-                const buffer = new Uint8Array(arrayBuffer);
-                const ext = file.name.substring(file.name.lastIndexOf('.'));
-                
-                // Save image via Electron
-                const saveRes = await ipcRenderer.invoke('save-image-for-job', {
-                    excelPath: activeFile.path,
-                    jobId: job.id,
-                    imageIndex: i + 1,
-                    fileData: buffer,
-                    extension: ext
-                });
+            // Save image via Electron
+            const saveRes = await ipcRenderer.invoke('save-image-for-job', {
+                excelPath: activeFile.path,
+                jobId: uploadContext.jobId,
+                imageIndex: uploadContext.slotIndex,
+                fileData: buffer,
+                extension: ext
+            });
 
-                if (saveRes.success) {
-                    const colName = i === 0 ? 'IMAGE_PATH' : (i === 1 ? 'IMAGE_PATH_2' : 'IMAGE_PATH_3');
-                    updates[colName] = saveRes.path;
-                }
-            }
-
-            // Update Excel with new paths
-            if (Object.keys(updates).length > 0) {
+            if (saveRes.success) {
+                const colName = uploadContext.slotIndex === 1 ? 'IMAGE_PATH' : (uploadContext.slotIndex === 2 ? 'IMAGE_PATH_2' : 'IMAGE_PATH_3');
                 await ipcRenderer.invoke('update-job-fields', {
                     filePath: activeFile.path,
-                    jobId: job.id,
-                    updates: updates
+                    jobId: uploadContext.jobId,
+                    updates: { [colName]: saveRes.path }
                 });
                 handleRefresh();
             }
-
         } catch (err: any) {
             alert(`Lỗi upload: ${err.message}`);
         } finally {
             setLoading(false);
-            e.target.value = ''; // Reset input
+            setUploadContext(null);
         }
+    };
+
+    const renderImageSlot = (job: VideoJob, slotIndex: number) => {
+        const imagePath = slotIndex === 1 ? job.imagePath : (slotIndex === 2 ? job.imagePath2 : job.imagePath3);
+        const hasImage = !!imagePath;
+
+        return (
+            <div 
+                key={slotIndex}
+                onClick={() => triggerImageUpload(job.id, slotIndex)}
+                className={`
+                    relative rounded-lg overflow-hidden border-2 transition-all cursor-pointer group flex items-center justify-center
+                    ${hasImage 
+                        ? 'border-transparent hover:shadow-lg' 
+                        : 'border-dashed border-gray-300 hover:border-blue-400 bg-gray-50 hover:bg-blue-50'
+                    }
+                    ${job.typeVideo === 'I2V' ? 'w-20 h-20' : 'w-16 h-16'}
+                `}
+                title={`Upload Image ${slotIndex}`}
+            >
+                {hasImage ? (
+                    <>
+                        <img src={getFileUrl(imagePath)} className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                            <UploadIcon className="w-4 h-4 text-white" />
+                        </div>
+                    </>
+                ) : (
+                    <PlusIcon className="w-5 h-5 text-gray-400 group-hover:text-blue-500" />
+                )}
+                
+                {/* Slot Label */}
+                <div className="absolute bottom-0 right-0 bg-black/60 text-white text-[8px] px-1 rounded-tl">
+                    {slotIndex}
+                </div>
+            </div>
+        );
     };
 
     // --- Render ---
@@ -435,8 +469,6 @@ const Tracker: React.FC = () => {
             <div className="bg-white/80 backdrop-blur-md rounded-2xl p-2 mb-4 flex items-center justify-between shadow-sm border border-green-100 h-20">
                  {/* Left Side: Stats Dashboard */}
                  <div className="flex items-center h-full">
-                    
-                    {/* Block 1: Tổng Files - Updated Logic */}
                     <div className="px-6 flex flex-col justify-center h-full border-r border-gray-100">
                         <span className="text-[10px] text-gray-400 font-extrabold uppercase tracking-widest mb-1">FILE HOÀN THÀNH</span>
                         <div className="flex items-baseline gap-1">
@@ -446,7 +478,6 @@ const Tracker: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Block 2: Jobs Hoàn Thành */}
                     <div className="px-6 flex flex-col justify-center h-full border-r border-gray-100">
                         <span className="text-[10px] text-gray-400 font-extrabold uppercase tracking-widest mb-1">JOBS HOÀN THÀNH</span>
                         <div className="flex items-baseline gap-1">
@@ -456,7 +487,6 @@ const Tracker: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Block 3: Tiến Độ */}
                     <div className="px-6 flex flex-col justify-center h-full min-w-[200px]">
                          <div className="flex justify-between items-end mb-2">
                              <span className="text-[10px] text-gray-400 font-extrabold uppercase tracking-widest">TIẾN ĐỘ</span>
@@ -471,7 +501,6 @@ const Tracker: React.FC = () => {
                     </div>
                  </div>
 
-                 {/* Right Side: Buttons */}
                  <div className="flex items-center gap-2 pr-2">
                      <button onClick={handleOpenFile} className="p-2.5 rounded-xl bg-red-50 text-red-600 hover:bg-red-600 hover:text-white hover:shadow-md transition" title="Mở thêm file"><FolderIcon className="w-5 h-5" /></button>
                      <button onClick={handleScanFolder} className="p-2.5 rounded-xl bg-green-50 text-green-600 hover:bg-green-600 hover:text-white hover:shadow-md transition" title="Quét thư mục"><SearchIcon className="w-5 h-5" /></button>
@@ -487,7 +516,7 @@ const Tracker: React.FC = () => {
             {/* Main Split Layout */}
             <div className="flex gap-4 flex-1 overflow-hidden">
                 
-                {/* Left Sidebar: File List */}
+                {/* Left Sidebar */}
                 <div className="w-[260px] flex flex-col gap-2 overflow-y-auto pr-1 pb-4 custom-scrollbar">
                     {files.map((f, idx) => {
                         const total = f.jobs.length;
@@ -509,18 +538,10 @@ const Tracker: React.FC = () => {
                             >
                                 <div className="flex justify-between items-start mb-2">
                                     <div className={`font-bold text-sm truncate pr-2 ${isActive ? 'text-red-800' : 'text-gray-500'}`} title={f.name}>{f.name}</div>
-                                    <button 
-                                        onClick={(e) => handleCloseFile(idx, e)}
-                                        className="text-gray-300 hover:text-red-500 p-0.5 rounded-full hover:bg-red-50 transition opacity-0 group-hover:opacity-100"
-                                    >
-                                        <TrashIcon className="w-3 h-3" />
-                                    </button>
+                                    <button onClick={(e) => handleCloseFile(idx, e)} className="text-gray-300 hover:text-red-500 p-0.5 rounded-full hover:bg-red-50 transition opacity-0 group-hover:opacity-100"><TrashIcon className="w-3 h-3" /></button>
                                 </div>
                                 <div className="w-full bg-gray-200 rounded-full h-1 overflow-hidden">
-                                    <div 
-                                        className={`h-full rounded-full transition-all duration-500 ${percent === 100 ? 'bg-green-500' : 'bg-red-400'}`} 
-                                        style={{ width: `${percent}%` }}
-                                    />
+                                    <div className={`h-full rounded-full transition-all duration-500 ${percent === 100 ? 'bg-green-500' : 'bg-red-400'}`} style={{ width: `${percent}%` }} />
                                 </div>
                             </div>
                         );
@@ -531,36 +552,20 @@ const Tracker: React.FC = () => {
                 <div className="flex-1 flex flex-col gap-4 overflow-hidden">
                     {activeFile ? (
                         <>
-                            {/* Detailed Header & Toolbar */}
+                            {/* Header */}
                             <div className="bg-white/70 backdrop-blur-md p-1 rounded-2xl border border-white/60 shadow-sm flex flex-col gap-1">
-                                {/* Stats Row */}
                                 <div className="flex items-center p-3 gap-4">
                                     <div className="flex-1 min-w-0">
                                         <h2 className="text-lg font-extrabold text-gray-800 truncate" title={activeFile.name}>{activeFile.name}</h2>
                                         <p className="text-[10px] text-gray-400 font-mono mt-0.5 truncate cursor-pointer hover:text-red-600" onClick={copyFolderPath}>{activeFile.path}</p>
                                     </div>
-                                    
-                                    {/* Stats Cards - Christmas Theme */}
                                     <div className="flex gap-3">
-                                        <div className="bg-red-50 px-4 py-2 rounded-xl border border-red-100 min-w-[100px]">
-                                            <div className="text-[9px] font-bold text-red-400 uppercase tracking-wide mb-1">Tổng Job</div>
-                                            <div className="text-xl font-black text-red-600 leading-none">{fileTotal}</div>
-                                        </div>
-                                        <div className="bg-green-50 px-4 py-2 rounded-xl border border-green-100 min-w-[100px]">
-                                            <div className="text-[9px] font-bold text-green-500 uppercase tracking-wide mb-1">Hoàn thành</div>
-                                            <div className="text-xl font-black text-green-600 leading-none">{fileCompleted}</div>
-                                        </div>
-                                        <div className="bg-yellow-50 px-4 py-2 rounded-xl border border-yellow-100 min-w-[100px]">
-                                            <div className="text-[9px] font-bold text-yellow-600 uppercase tracking-wide mb-1">Đang xử lý</div>
-                                            <div className="text-xl font-black text-yellow-600 leading-none">{fileProcessing}</div>
-                                        </div>
-                                        <div className="pl-4 border-l border-gray-200 flex flex-col justify-center items-end min-w-[60px]">
-                                            <div className="text-2xl font-black text-gray-700">{filePercent}<span className="text-sm text-gray-400">%</span></div>
-                                        </div>
+                                        <div className="bg-red-50 px-4 py-2 rounded-xl border border-red-100 min-w-[100px]"><div className="text-[9px] font-bold text-red-400 uppercase tracking-wide mb-1">Tổng Job</div><div className="text-xl font-black text-red-600 leading-none">{fileTotal}</div></div>
+                                        <div className="bg-green-50 px-4 py-2 rounded-xl border border-green-100 min-w-[100px]"><div className="text-[9px] font-bold text-green-500 uppercase tracking-wide mb-1">Hoàn thành</div><div className="text-xl font-black text-green-600 leading-none">{fileCompleted}</div></div>
+                                        <div className="bg-yellow-50 px-4 py-2 rounded-xl border border-yellow-100 min-w-[100px]"><div className="text-[9px] font-bold text-yellow-600 uppercase tracking-wide mb-1">Đang xử lý</div><div className="text-xl font-black text-yellow-600 leading-none">{fileProcessing}</div></div>
+                                        <div className="pl-4 border-l border-gray-200 flex flex-col justify-center items-end min-w-[60px]"><div className="text-2xl font-black text-gray-700">{filePercent}<span className="text-sm text-gray-400">%</span></div></div>
                                     </div>
                                 </div>
-
-                                {/* Toolbar Row */}
                                 <div className="bg-white/50 rounded-xl px-4 py-2 flex items-center justify-between">
                                     <div className="flex items-center gap-4 text-xs font-bold text-gray-500">
                                         <span className="uppercase tracking-wider text-[10px]">Ghép Video:</span>
@@ -586,9 +591,9 @@ const Tracker: React.FC = () => {
                                                 <th className="px-6 py-3 w-16 text-gray-400 font-extrabold uppercase text-[10px] tracking-widest">ID</th>
                                                 <th className="px-6 py-3 w-48 text-gray-400 font-extrabold uppercase text-[10px] tracking-widest">Video Preview</th>
                                                 
-                                                {/* NEW COLUMNS */}
-                                                <th className="px-6 py-3 w-28 text-center text-gray-400 font-extrabold uppercase text-[10px] tracking-widest">Type Video</th>
-                                                <th className="px-6 py-3 w-40 text-center text-gray-400 font-extrabold uppercase text-[10px] tracking-widest">Ref Images</th>
+                                                {/* UI Improvement: Wider & Center columns */}
+                                                <th className="px-6 py-3 w-32 text-center text-gray-400 font-extrabold uppercase text-[10px] tracking-widest">Type Video</th>
+                                                <th className="px-6 py-3 w-64 text-left text-gray-400 font-extrabold uppercase text-[10px] tracking-widest">Reference Images</th>
                                                 
                                                 <th className="px-6 py-3 w-24 text-center text-gray-400 font-extrabold uppercase text-[10px] tracking-widest">Trạng thái</th>
                                                 <th className="px-6 py-3 text-right text-gray-400 font-extrabold uppercase text-[10px] tracking-widest">Hành động</th>
@@ -596,16 +601,13 @@ const Tracker: React.FC = () => {
                                         </thead>
                                         <tbody className="divide-y divide-gray-100">
                                             {activeFile.jobs.map((job, jIdx) => {
-                                                const hasRefImages = job.imagePath || job.imagePath2 || job.imagePath3;
-                                                const refImages = [job.imagePath, job.imagePath2, job.imagePath3].filter(Boolean);
-
+                                                const type = job.typeVideo ? job.typeVideo.toUpperCase() : '';
+                                                
                                                 return (
                                                     <tr key={job.id + jIdx} className="hover:bg-white/50 transition group">
                                                         <td className="px-6 py-4 align-top pt-6">
                                                             <div className="font-mono font-bold text-gray-400 text-xs group-hover:text-red-500 transition">{job.id}</div>
-                                                            <div className="text-[9px] text-gray-300 mt-1 line-clamp-2 w-20 group-hover:text-gray-400 transition" title={job.prompt}>
-                                                                {job.prompt}
-                                                            </div>
+                                                            <div className="text-[9px] text-gray-300 mt-1 line-clamp-2 w-20 group-hover:text-gray-400 transition" title={job.prompt}>{job.prompt}</div>
                                                         </td>
                                                         <td className="px-6 py-3">
                                                             {job.videoPath ? (
@@ -629,52 +631,40 @@ const Tracker: React.FC = () => {
                                                             )}
                                                         </td>
 
-                                                        {/* TYPE VIDEO COLUMN */}
+                                                        {/* Type Video Selector - Styled like a pill */}
                                                         <td className="px-6 py-4 align-middle text-center">
                                                             <select 
-                                                                value={job.typeVideo || ''} 
+                                                                value={type} 
                                                                 onChange={(e) => handleTypeChange(job, e.target.value)}
-                                                                className="bg-white border border-gray-200 text-xs font-bold text-gray-600 rounded-lg p-1.5 outline-none focus:ring-2 focus:ring-red-100 shadow-sm w-full text-center"
+                                                                className={`
+                                                                    text-xs font-bold rounded-full py-1.5 px-3 outline-none shadow-sm cursor-pointer transition border
+                                                                    ${type === 'I2V' ? 'bg-blue-50 text-blue-600 border-blue-200' : 
+                                                                      type === 'IN2V' ? 'bg-purple-50 text-purple-600 border-purple-200' : 
+                                                                      'bg-gray-100 text-gray-500 border-gray-200'}
+                                                                `}
                                                             >
-                                                                <option value="">(None)</option>
+                                                                <option value="">None</option>
                                                                 <option value="I2V">I2V</option>
                                                                 <option value="IN2V">IN2V</option>
                                                             </select>
                                                         </td>
 
-                                                        {/* REFERENCE IMAGES COLUMN */}
+                                                        {/* Interactive Image Slots */}
                                                         <td className="px-6 py-4 align-middle">
-                                                            <div className="flex flex-col items-center gap-2">
-                                                                {/* Display Thumbnails if exist */}
-                                                                {hasRefImages ? (
-                                                                    <div className="flex -space-x-2">
-                                                                        {refImages.map((path, idx) => (
-                                                                             <div key={idx} className="w-8 h-8 rounded-full border-2 border-white shadow-sm overflow-hidden bg-gray-100 relative group/thumb">
-                                                                                <img src={getFileUrl(path)} className="w-full h-full object-cover" />
-                                                                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/thumb:opacity-100 transition text-[8px] text-white flex items-center justify-center font-bold">Ref {idx+1}</div>
-                                                                             </div>
-                                                                        ))}
+                                                            <div className="flex items-center gap-3">
+                                                                {!type ? (
+                                                                    <span className="text-[10px] text-gray-300 italic font-medium select-none px-2">Disabled</span>
+                                                                ) : type === 'I2V' ? (
+                                                                    // I2V: Single Slot
+                                                                    renderImageSlot(job, 1)
+                                                                ) : type === 'IN2V' ? (
+                                                                    // IN2V: Three Slots
+                                                                    <div className="grid grid-cols-3 gap-2">
+                                                                        {renderImageSlot(job, 1)}
+                                                                        {renderImageSlot(job, 2)}
+                                                                        {renderImageSlot(job, 3)}
                                                                     </div>
                                                                 ) : null}
-
-                                                                {/* Upload Button */}
-                                                                {!job.typeVideo ? (
-                                                                    <div className="text-[9px] text-gray-300 italic select-none">Disabled</div>
-                                                                ) : (
-                                                                    <div className="relative">
-                                                                        <input 
-                                                                            type="file" 
-                                                                            multiple 
-                                                                            accept="image/*"
-                                                                            onChange={(e) => handleImageUpload(job, e)}
-                                                                            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
-                                                                        />
-                                                                        <button className="flex items-center gap-1 bg-blue-50 hover:bg-blue-100 text-blue-600 px-2 py-1 rounded-md text-[9px] font-bold transition shadow-sm border border-blue-100">
-                                                                            <UploadIcon className="w-3 h-3" />
-                                                                            {hasRefImages ? 'Thêm/Sửa' : 'Upload Ảnh'}
-                                                                        </button>
-                                                                    </div>
-                                                                )}
                                                             </div>
                                                         </td>
 
@@ -689,23 +679,14 @@ const Tracker: React.FC = () => {
                                                         </td>
                                                         <td className="px-6 py-4 align-middle">
                                                             <div className="flex justify-end items-center gap-2">
-                                                                <button 
-                                                                    onClick={() => handleResetJob(job)} 
-                                                                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-50 text-gray-400 hover:bg-red-500 hover:text-white transition-all duration-200 shadow-sm hover:shadow-md border border-gray-100" 
-                                                                    title="Tạo lại (Reset)"
-                                                                >
-                                                                    <RetryIcon className="w-4 h-4" />
-                                                                </button>
-
+                                                                <button onClick={() => handleResetJob(job)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-50 text-gray-400 hover:bg-red-500 hover:text-white transition-all duration-200 shadow-sm hover:shadow-md border border-gray-100" title="Tạo lại"><RetryIcon className="w-4 h-4" /></button>
                                                                 {job.videoPath ? (
                                                                     <>
-                                                                        <button onClick={() => handleVideoAction('play', job)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-green-50 text-green-600 hover:bg-green-500 hover:text-white transition-all duration-200 shadow-sm hover:shadow-md border border-green-100" title="Xem video"><PlayIcon className="w-4 h-4"/></button>
-                                                                        <button onClick={() => handleVideoAction('folder', job)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-500 hover:text-white transition-all duration-200 shadow-sm hover:shadow-md border border-blue-100" title="Mở thư mục"><FolderIcon className="w-4 h-4"/></button>
-                                                                        <button onClick={() => handleVideoAction('delete', job)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all duration-200 shadow-sm hover:shadow-md border border-red-100" title="Xóa video"><TrashIcon className="w-4 h-4"/></button>
+                                                                        <button onClick={() => handleVideoAction('play', job)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-green-50 text-green-600 hover:bg-green-500 hover:text-white transition-all duration-200 shadow-sm hover:shadow-md border border-green-100"><PlayIcon className="w-4 h-4"/></button>
+                                                                        <button onClick={() => handleVideoAction('folder', job)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-500 hover:text-white transition-all duration-200 shadow-sm hover:shadow-md border border-blue-100"><FolderIcon className="w-4 h-4"/></button>
+                                                                        <button onClick={() => handleVideoAction('delete', job)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all duration-200 shadow-sm hover:shadow-md border border-red-100"><TrashIcon className="w-4 h-4"/></button>
                                                                     </>
-                                                                ) : (
-                                                                    <div className="w-[120px]"></div>
-                                                                )}
+                                                                ) : <div className="w-[120px]"></div>}
                                                             </div>
                                                         </td>
                                                     </tr>
@@ -725,6 +706,15 @@ const Tracker: React.FC = () => {
                     )}
                 </div>
             </div>
+
+            {/* Hidden Input for specific slot uploads */}
+            <input 
+                type="file" 
+                ref={fileInputRef}
+                style={{ display: 'none' }} 
+                accept="image/*"
+                onChange={onFileChange}
+            />
 
             {loading && (
                 <div className="fixed inset-0 bg-white/50 z-[100] flex items-center justify-center backdrop-blur-sm">
