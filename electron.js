@@ -265,6 +265,61 @@ async function updateExcelStatus(filePath, jobIdsToUpdate, newStatus = '') {
     }
 }
 
+async function updateExcelJobFields(filePath, jobId, updates) {
+    try {
+        if (!fs.existsSync(filePath)) throw new Error('File not found');
+        const fileContent = fs.readFileSync(filePath);
+        const workbook = XLSX.read(fileContent, { type: 'buffer' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const dataAsArrays = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+        if (dataAsArrays.length < 2) return { success: true };
+
+        const headers = dataAsArrays[0].map(h => String(h).trim());
+        const jobIdIndex = headers.indexOf('JOB_ID');
+        
+        if (jobIdIndex === -1) throw new Error('JOB_ID column not found');
+
+        // Map update keys to column indices
+        const updateMap = {};
+        for (const [key, val] of Object.entries(updates)) {
+            const colIndex = headers.indexOf(key);
+            if (colIndex !== -1) {
+                updateMap[colIndex] = val;
+            } else {
+                 // Option: Add column if missing? For now, ignore or throw.
+                 // Let's create column if missing (simple append)
+                 const newColIndex = headers.length;
+                 headers.push(key);
+                 dataAsArrays[0][newColIndex] = key;
+                 updateMap[newColIndex] = val;
+            }
+        }
+
+        let found = false;
+        for (let i = 1; i < dataAsArrays.length; i++) {
+            if (String(dataAsArrays[i][jobIdIndex]) === String(jobId)) {
+                for (const [colIndex, val] of Object.entries(updateMap)) {
+                    dataAsArrays[i][colIndex] = val;
+                }
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) throw new Error(`Job ID ${jobId} not found`);
+
+        const newWorksheet = XLSX.utils.aoa_to_sheet(dataAsArrays);
+        if (worksheet['!cols']) newWorksheet['!cols'] = worksheet['!cols'];
+        const newWorkbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, sheetName);
+        fs.writeFileSync(filePath, XLSX.write(newWorkbook, { bookType: 'xlsx', type: 'buffer' }));
+        return { success: true };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+}
+
 function showWindowAndNotify(title, message, type = 'completion') {
     if (mainWindow) {
         if (mainWindow.isMinimized()) mainWindow.restore();
@@ -555,6 +610,28 @@ ipcMain.handle('retry-stuck-jobs', async (event, { filePath }) => {
         if (stuckIds.length > 0) await updateExcelStatus(filePath, stuckIds, '');
         return { success: true };
     } catch (e) { return { success: false, error: e.message }; }
+});
+
+ipcMain.handle('update-job-fields', async (event, { filePath, jobId, updates }) => {
+    return await updateExcelJobFields(filePath, jobId, updates);
+});
+
+ipcMain.handle('save-image-for-job', async (event, { excelPath, jobId, imageIndex, fileData, extension }) => {
+    try {
+        const dir = path.dirname(excelPath);
+        const excelName = path.basename(excelPath, '.xlsx');
+        const assetsDir = path.join(dir, `${excelName}_assets`);
+        
+        if (!fs.existsSync(assetsDir)) fs.mkdirSync(assetsDir);
+        
+        const fileName = `${jobId}_Ref_${imageIndex}${extension}`;
+        const filePath = path.join(assetsDir, fileName);
+        
+        fs.writeFileSync(filePath, Buffer.from(fileData));
+        return { success: true, path: filePath };
+    } catch (e) {
+        return { success: false, error: e.message };
+    }
 });
 
 ipcMain.handle('execute-ffmpeg-combine', async (event, { jobs, targetDuration, mode, excelFileName }) => {

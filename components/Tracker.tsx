@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { TrackedFile, VideoJob } from '../types';
@@ -11,7 +12,8 @@ import {
   ExternalLinkIcon, 
   CogIcon,
   SearchIcon,
-  LinkIcon
+  LinkIcon,
+  UploadIcon
 } from './Icons';
 
 const isElectron = navigator.userAgent.toLowerCase().includes('electron');
@@ -25,6 +27,7 @@ const Tracker: React.FC = () => {
 
     // Global Stats Calculation
     const totalFiles = files.length;
+    const completedFilesCount = files.filter(f => f.jobs.length > 0 && f.jobs.every(j => j.status === 'Completed')).length;
     const totalJobs = files.reduce((acc, f) => acc + f.jobs.length, 0);
     const totalCompleted = files.reduce((acc, f) => acc + f.jobs.filter(j => j.status === 'Completed').length, 0);
     const globalPercent = totalJobs > 0 ? Math.round((totalCompleted / totalJobs) * 100) : 0;
@@ -48,6 +51,9 @@ const Tracker: React.FC = () => {
             const statusIdx = headers.indexOf('STATUS');
             const videoNameIdx = headers.indexOf('VIDEO_NAME');
             const typeIdx = headers.indexOf('TYPE_VIDEO');
+            const img1Idx = headers.indexOf('IMAGE_PATH');
+            const img2Idx = headers.indexOf('IMAGE_PATH_2');
+            const img3Idx = headers.indexOf('IMAGE_PATH_3');
 
             return jsonData.slice(1).map((row: any[]) => ({
                 id: row[idIdx] || '',
@@ -55,7 +61,9 @@ const Tracker: React.FC = () => {
                 status: (row[statusIdx] || 'Pending') as any,
                 videoName: row[videoNameIdx] || '',
                 typeVideo: row[typeIdx] || '',
-                imagePath: '', imagePath2: '', imagePath3: '' 
+                imagePath: row[img1Idx] || '', 
+                imagePath2: row[img2Idx] || '', 
+                imagePath3: row[img3Idx] || '' 
             })).filter(j => j.id);
         } catch (e) {
             console.error("Parse error:", e);
@@ -311,6 +319,87 @@ const Tracker: React.FC = () => {
         }
     };
 
+    // --- New Features: Video Type & Image Upload ---
+
+    const handleTypeChange = async (job: VideoJob, newType: string) => {
+        const activeFile = files[activeFileIndex];
+        if (!activeFile || !ipcRenderer || !activeFile.path) return;
+        
+        setLoading(true);
+        try {
+            await ipcRenderer.invoke('update-job-fields', { 
+                filePath: activeFile.path, 
+                jobId: job.id, 
+                updates: { 'TYPE_VIDEO': newType }
+            });
+            handleRefresh(); // Refresh UI after backend update
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleImageUpload = async (job: VideoJob, e: React.ChangeEvent<HTMLInputElement>) => {
+        const activeFile = files[activeFileIndex];
+        if (!activeFile || !ipcRenderer || !activeFile.path) return;
+        
+        const selectedFiles = e.target.files;
+        if (!selectedFiles || selectedFiles.length === 0) return;
+
+        // Validation
+        const type = job.typeVideo.toUpperCase();
+        if (!type) return alert("Vui lòng chọn Type Video trước.");
+        
+        if (type === 'I2V' && selectedFiles.length > 1) {
+            return alert("Chế độ I2V chỉ hỗ trợ tải lên 1 ảnh duy nhất.");
+        }
+        if (type === 'IN2V' && selectedFiles.length > 3) {
+            return alert("Chế độ IN2V chỉ hỗ trợ tối đa 3 ảnh.");
+        }
+        
+        setLoading(true);
+        try {
+            const updates: Record<string, string> = {};
+            
+            // Process each file
+            for (let i = 0; i < selectedFiles.length; i++) {
+                const file = selectedFiles[i];
+                const arrayBuffer = await file.arrayBuffer();
+                const buffer = new Uint8Array(arrayBuffer);
+                const ext = file.name.substring(file.name.lastIndexOf('.'));
+                
+                // Save image via Electron
+                const saveRes = await ipcRenderer.invoke('save-image-for-job', {
+                    excelPath: activeFile.path,
+                    jobId: job.id,
+                    imageIndex: i + 1,
+                    fileData: buffer,
+                    extension: ext
+                });
+
+                if (saveRes.success) {
+                    const colName = i === 0 ? 'IMAGE_PATH' : (i === 1 ? 'IMAGE_PATH_2' : 'IMAGE_PATH_3');
+                    updates[colName] = saveRes.path;
+                }
+            }
+
+            // Update Excel with new paths
+            if (Object.keys(updates).length > 0) {
+                await ipcRenderer.invoke('update-job-fields', {
+                    filePath: activeFile.path,
+                    jobId: job.id,
+                    updates: updates
+                });
+                handleRefresh();
+            }
+
+        } catch (err: any) {
+            alert(`Lỗi upload: ${err.message}`);
+        } finally {
+            setLoading(false);
+            e.target.value = ''; // Reset input
+        }
+    };
+
     // --- Render ---
     const activeFile = files[activeFileIndex];
     
@@ -347,10 +436,14 @@ const Tracker: React.FC = () => {
                  {/* Left Side: Stats Dashboard */}
                  <div className="flex items-center h-full">
                     
-                    {/* Block 1: Tổng Files */}
+                    {/* Block 1: Tổng Files - Updated Logic */}
                     <div className="px-6 flex flex-col justify-center h-full border-r border-gray-100">
-                        <span className="text-[10px] text-gray-400 font-extrabold uppercase tracking-widest mb-1">TỔNG FILES</span>
-                        <span className="text-3xl font-black text-red-600 leading-none">{totalFiles}</span>
+                        <span className="text-[10px] text-gray-400 font-extrabold uppercase tracking-widest mb-1">FILE HOÀN THÀNH</span>
+                        <div className="flex items-baseline gap-1">
+                             <span className="text-3xl font-black text-red-600 leading-none">{completedFilesCount}</span>
+                             <span className="text-xl font-bold text-gray-300">/</span>
+                             <span className="text-xl font-bold text-gray-400">{totalFiles}</span>
+                        </div>
                     </div>
 
                     {/* Block 2: Jobs Hoàn Thành */}
@@ -490,74 +583,134 @@ const Tracker: React.FC = () => {
                                     <table className="w-full text-sm text-left">
                                         <thead className="sticky top-0 z-10 bg-white/90 backdrop-blur-md shadow-sm">
                                             <tr>
-                                                <th className="px-6 py-3 w-20 text-gray-400 font-extrabold uppercase text-[10px] tracking-widest">ID</th>
+                                                <th className="px-6 py-3 w-16 text-gray-400 font-extrabold uppercase text-[10px] tracking-widest">ID</th>
                                                 <th className="px-6 py-3 w-48 text-gray-400 font-extrabold uppercase text-[10px] tracking-widest">Video Preview</th>
-                                                <th className="px-6 py-3 w-32 text-center text-gray-400 font-extrabold uppercase text-[10px] tracking-widest">Trạng thái</th>
+                                                
+                                                {/* NEW COLUMNS */}
+                                                <th className="px-6 py-3 w-28 text-center text-gray-400 font-extrabold uppercase text-[10px] tracking-widest">Type Video</th>
+                                                <th className="px-6 py-3 w-40 text-center text-gray-400 font-extrabold uppercase text-[10px] tracking-widest">Ref Images</th>
+                                                
+                                                <th className="px-6 py-3 w-24 text-center text-gray-400 font-extrabold uppercase text-[10px] tracking-widest">Trạng thái</th>
                                                 <th className="px-6 py-3 text-right text-gray-400 font-extrabold uppercase text-[10px] tracking-widest">Hành động</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-100">
-                                            {activeFile.jobs.map((job, jIdx) => (
-                                                <tr key={job.id + jIdx} className="hover:bg-white/50 transition group">
-                                                    <td className="px-6 py-4 align-top pt-6">
-                                                        <div className="font-mono font-bold text-gray-400 text-xs group-hover:text-red-500 transition">{job.id}</div>
-                                                        <div className="text-[9px] text-gray-300 mt-1 line-clamp-2 w-20 group-hover:text-gray-400 transition" title={job.prompt}>
-                                                            {job.prompt}
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-6 py-3">
-                                                        {job.videoPath ? (
-                                                            <div className="relative w-40 h-24 rounded-xl overflow-hidden shadow-sm border border-gray-200 group-hover:shadow-lg group-hover:scale-[1.02] transition bg-black cursor-pointer group/video">
-                                                                <video 
-                                                                    src={getFileUrl(job.videoPath)}
-                                                                    className="w-full h-full object-cover opacity-90 group-hover/video:opacity-100 transition"
-                                                                    preload="metadata"
-                                                                    muted
-                                                                    loop
-                                                                    onMouseOver={e => e.currentTarget.play().catch(()=>{})}
-                                                                    onMouseOut={e => e.currentTarget.pause()}
-                                                                />
-                                                                <div className="absolute bottom-1 right-1 bg-black/60 text-white text-[9px] px-1.5 py-0.5 rounded font-medium backdrop-blur-sm pointer-events-none">Preview</div>
-                                                            </div>
-                                                        ) : (
-                                                            <div className="w-40 h-24 rounded-xl bg-gray-50/50 border border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-300">
-                                                                <PlayIcon className="w-6 h-6 opacity-20 mb-1" />
-                                                                <span className="text-[9px] font-bold opacity-50">No Video</span>
-                                                            </div>
-                                                        )}
-                                                    </td>
-                                                    <td className="px-6 py-4 text-center align-middle">
-                                                        <span className={`inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-[10px] font-black shadow-sm uppercase tracking-wider border ${
-                                                            job.status === 'Completed' ? 'bg-green-100 text-green-700 border-green-200' :
-                                                            job.status === 'Processing' || job.status === 'Generating' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
-                                                            'bg-gray-100 text-gray-500 border-gray-200'
-                                                        }`}>
-                                                            {job.status || 'Pending'}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-6 py-4 align-middle">
-                                                        <div className="flex justify-end items-center gap-2">
-                                                            <button 
-                                                                onClick={() => handleResetJob(job)} 
-                                                                className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-50 text-gray-400 hover:bg-red-500 hover:text-white transition-all duration-200 shadow-sm hover:shadow-md border border-gray-100" 
-                                                                title="Tạo lại (Reset)"
-                                                            >
-                                                                <RetryIcon className="w-4 h-4" />
-                                                            </button>
+                                            {activeFile.jobs.map((job, jIdx) => {
+                                                const hasRefImages = job.imagePath || job.imagePath2 || job.imagePath3;
+                                                const refImages = [job.imagePath, job.imagePath2, job.imagePath3].filter(Boolean);
 
+                                                return (
+                                                    <tr key={job.id + jIdx} className="hover:bg-white/50 transition group">
+                                                        <td className="px-6 py-4 align-top pt-6">
+                                                            <div className="font-mono font-bold text-gray-400 text-xs group-hover:text-red-500 transition">{job.id}</div>
+                                                            <div className="text-[9px] text-gray-300 mt-1 line-clamp-2 w-20 group-hover:text-gray-400 transition" title={job.prompt}>
+                                                                {job.prompt}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-3">
                                                             {job.videoPath ? (
-                                                                <>
-                                                                    <button onClick={() => handleVideoAction('play', job)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-green-50 text-green-600 hover:bg-green-500 hover:text-white transition-all duration-200 shadow-sm hover:shadow-md border border-green-100" title="Xem video"><PlayIcon className="w-4 h-4"/></button>
-                                                                    <button onClick={() => handleVideoAction('folder', job)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-500 hover:text-white transition-all duration-200 shadow-sm hover:shadow-md border border-blue-100" title="Mở thư mục"><FolderIcon className="w-4 h-4"/></button>
-                                                                    <button onClick={() => handleVideoAction('delete', job)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all duration-200 shadow-sm hover:shadow-md border border-red-100" title="Xóa video"><TrashIcon className="w-4 h-4"/></button>
-                                                                </>
+                                                                <div className="relative w-40 h-24 rounded-xl overflow-hidden shadow-sm border border-gray-200 group-hover:shadow-lg group-hover:scale-[1.02] transition bg-black cursor-pointer group/video">
+                                                                    <video 
+                                                                        src={getFileUrl(job.videoPath)}
+                                                                        className="w-full h-full object-cover opacity-90 group-hover/video:opacity-100 transition"
+                                                                        preload="metadata"
+                                                                        muted
+                                                                        loop
+                                                                        onMouseOver={e => e.currentTarget.play().catch(()=>{})}
+                                                                        onMouseOut={e => e.currentTarget.pause()}
+                                                                    />
+                                                                    <div className="absolute bottom-1 right-1 bg-black/60 text-white text-[9px] px-1.5 py-0.5 rounded font-medium backdrop-blur-sm pointer-events-none">Preview</div>
+                                                                </div>
                                                             ) : (
-                                                                <div className="w-[120px]"></div>
+                                                                <div className="w-40 h-24 rounded-xl bg-gray-50/50 border border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-300">
+                                                                    <PlayIcon className="w-6 h-6 opacity-20 mb-1" />
+                                                                    <span className="text-[9px] font-bold opacity-50">No Video</span>
+                                                                </div>
                                                             )}
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))}
+                                                        </td>
+
+                                                        {/* TYPE VIDEO COLUMN */}
+                                                        <td className="px-6 py-4 align-middle text-center">
+                                                            <select 
+                                                                value={job.typeVideo || ''} 
+                                                                onChange={(e) => handleTypeChange(job, e.target.value)}
+                                                                className="bg-white border border-gray-200 text-xs font-bold text-gray-600 rounded-lg p-1.5 outline-none focus:ring-2 focus:ring-red-100 shadow-sm w-full text-center"
+                                                            >
+                                                                <option value="">(None)</option>
+                                                                <option value="I2V">I2V</option>
+                                                                <option value="IN2V">IN2V</option>
+                                                            </select>
+                                                        </td>
+
+                                                        {/* REFERENCE IMAGES COLUMN */}
+                                                        <td className="px-6 py-4 align-middle">
+                                                            <div className="flex flex-col items-center gap-2">
+                                                                {/* Display Thumbnails if exist */}
+                                                                {hasRefImages ? (
+                                                                    <div className="flex -space-x-2">
+                                                                        {refImages.map((path, idx) => (
+                                                                             <div key={idx} className="w-8 h-8 rounded-full border-2 border-white shadow-sm overflow-hidden bg-gray-100 relative group/thumb">
+                                                                                <img src={getFileUrl(path)} className="w-full h-full object-cover" />
+                                                                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/thumb:opacity-100 transition text-[8px] text-white flex items-center justify-center font-bold">Ref {idx+1}</div>
+                                                                             </div>
+                                                                        ))}
+                                                                    </div>
+                                                                ) : null}
+
+                                                                {/* Upload Button */}
+                                                                {!job.typeVideo ? (
+                                                                    <div className="text-[9px] text-gray-300 italic select-none">Disabled</div>
+                                                                ) : (
+                                                                    <div className="relative">
+                                                                        <input 
+                                                                            type="file" 
+                                                                            multiple 
+                                                                            accept="image/*"
+                                                                            onChange={(e) => handleImageUpload(job, e)}
+                                                                            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+                                                                        />
+                                                                        <button className="flex items-center gap-1 bg-blue-50 hover:bg-blue-100 text-blue-600 px-2 py-1 rounded-md text-[9px] font-bold transition shadow-sm border border-blue-100">
+                                                                            <UploadIcon className="w-3 h-3" />
+                                                                            {hasRefImages ? 'Thêm/Sửa' : 'Upload Ảnh'}
+                                                                        </button>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </td>
+
+                                                        <td className="px-6 py-4 text-center align-middle">
+                                                            <span className={`inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-[10px] font-black shadow-sm uppercase tracking-wider border ${
+                                                                job.status === 'Completed' ? 'bg-green-100 text-green-700 border-green-200' :
+                                                                job.status === 'Processing' || job.status === 'Generating' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                                                                'bg-gray-100 text-gray-500 border-gray-200'
+                                                            }`}>
+                                                                {job.status || 'Pending'}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-4 align-middle">
+                                                            <div className="flex justify-end items-center gap-2">
+                                                                <button 
+                                                                    onClick={() => handleResetJob(job)} 
+                                                                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-50 text-gray-400 hover:bg-red-500 hover:text-white transition-all duration-200 shadow-sm hover:shadow-md border border-gray-100" 
+                                                                    title="Tạo lại (Reset)"
+                                                                >
+                                                                    <RetryIcon className="w-4 h-4" />
+                                                                </button>
+
+                                                                {job.videoPath ? (
+                                                                    <>
+                                                                        <button onClick={() => handleVideoAction('play', job)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-green-50 text-green-600 hover:bg-green-500 hover:text-white transition-all duration-200 shadow-sm hover:shadow-md border border-green-100" title="Xem video"><PlayIcon className="w-4 h-4"/></button>
+                                                                        <button onClick={() => handleVideoAction('folder', job)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-500 hover:text-white transition-all duration-200 shadow-sm hover:shadow-md border border-blue-100" title="Mở thư mục"><FolderIcon className="w-4 h-4"/></button>
+                                                                        <button onClick={() => handleVideoAction('delete', job)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all duration-200 shadow-sm hover:shadow-md border border-red-100" title="Xóa video"><TrashIcon className="w-4 h-4"/></button>
+                                                                    </>
+                                                                ) : (
+                                                                    <div className="w-[120px]"></div>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
                                         </tbody>
                                     </table>
                                 </div>
