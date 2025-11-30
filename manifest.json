@@ -1,21 +1,20 @@
-
 {
-  "name": "Prompt Generator Pro for MV & Live Show",
-  "short_name": "Prompt Gen Pro",
+  "name": "Trọng Tool Auto Flow",
+  "short_name": "Trọng Tool",
   "description": "An application to generate professional visual scripts for Music Videos and Live Shows by transforming ideas into detailed prompts for AI video models.",
   "start_url": ".",
   "display": "standalone",
-  "background_color": "#4338ca",
-  "theme_color": "#14b8a6",
+  "background_color": "#0ea5e9",
+  "theme_color": "#0ea5e9",
   "icons": [
     {
-      "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48Y2lyY2xlIGN4PSIyNTYiIGN5PSIyNTYiIHI9IjI1NiIgZmlsbD0iI2RjMjYyNiIvPjxwYXRoIGQ9Ik0xOTIgMTQ0bDE5MiAxMTItMTkyIDExMnoiIGZpbGw9IiNmZmYiLz48L3N2Zz4=",
+      "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPjxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwZWE1ZTk7c3RvcC1vcGFjaXR5OjEiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMyNTYzZWI7c3RvcC1vcGFjaXR5OjEiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjEwMCIgZmlsbD0idXJsKCNnKSIvPjxwYXRoIGQ9Ik0xNjAgMTIwSDM1MlYxOTBIMjk2VjM5MkgyMTZWMTkwSDE2MFYxMjBaIiBmaWxsPSJ3aGl0ZSIvPjwvc3ZnPg==",
       "sizes": "192x192",
       "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48Y2lyY2xlIGN4PSIyNTYiIGN5PSIyNTYiIHI9IjI1NiIgZmlsbD0iI2RjMjYyNiIvPjxwYXRoIGQ9Ik0xOTIgMTQ0bDE5MiAxMTItMTkyIDExMnoiIGZpbGw9IiNmZmYiLz48L3N2Zz4=",
+      "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPjxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwZWE1ZTk7c3RvcC1vcGFjaXR5OjEiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMyNTYzZWI7c3RvcC1vcGFjaXR5OjEiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjEwMCIgZmlsbD0idXJsKCNnKSIvPjxwYXRoIGQ9Ik0xNjAgMTIwSDM1MlYxOTBIMjk2VjM5MkgyMTZWMTkwSDE2MFYxMjBaIiBmaWxsPSJ3aGl0ZSIvPjwvc3ZnPg==",
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any"

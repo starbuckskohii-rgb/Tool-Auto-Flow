@@ -38,7 +38,7 @@
   },
   "build": {
     "appId": "com.starbuckskohii.autoflow",
-    "productName": "Tool Auto Flow",
+    "productName": "Trọng Tool Auto Flow",
     "publish": [
       {
         "provider": "github",
