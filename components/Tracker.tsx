@@ -2,6 +2,8 @@
 
 
 
+
+
 import React, { useState, useEffect, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import { TrackedFile, VideoJob } from '../types';
@@ -20,7 +22,8 @@ import {
   ChevronDownIcon,
   MaximizeIcon,
   XCircleIcon,
-  TableDeleteIcon
+  TableDeleteIcon,
+  FilterIcon
 } from './Icons';
 
 const isElectron = navigator.userAgent.toLowerCase().includes('electron');
@@ -47,6 +50,7 @@ const Tracker: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [combineMode, setCombineMode] = useState<'normal' | 'timed'>('normal');
     const [isStatsExpanded, setIsStatsExpanded] = useState(true);
+    const [filterStatus, setFilterStatus] = useState<string>('All');
 
     // Activity Log State
     const [activityLogs, setActivityLogs] = useState<LogEntry[]>([]);
@@ -530,6 +534,13 @@ const Tracker: React.FC = () => {
     // --- Render ---
     const activeFile = files[activeFileIndex];
     
+    // Derived state for filtering
+    const filteredJobs = activeFile ? activeFile.jobs.filter(j => {
+        if (filterStatus === 'All') return true;
+        if (filterStatus === 'Processing') return j.status === 'Processing' || j.status === 'Generating';
+        return j.status === filterStatus;
+    }) : [];
+    
     const fileTotal = activeFile ? activeFile.jobs.length : 0;
     const fileCompleted = activeFile ? activeFile.jobs.filter(j => j.status === 'Completed').length : 0;
     const fileProcessing = activeFile ? activeFile.jobs.filter(j => j.status === 'Processing' || j.status === 'Generating').length : 0;
@@ -762,6 +773,22 @@ const Tracker: React.FC = () => {
                                         <label className="flex items-center gap-1.5 cursor-pointer hover:text-red-600 transition"><input type="radio" name="combine" checked={combineMode==='timed'} onChange={()=>setCombineMode('timed')} className="accent-red-600 w-3 h-3"/> Theo thời gian</label>
                                     </div>
                                     <div className="flex items-center gap-2">
+                                        {/* Filter Dropdown */}
+                                        <div className="flex items-center gap-1.5 bg-white border border-gray-200 px-2 py-1.5 rounded-lg shadow-sm mr-2">
+                                            <FilterIcon className="w-3.5 h-3.5 text-gray-500" />
+                                            <select 
+                                                value={filterStatus} 
+                                                onChange={(e) => setFilterStatus(e.target.value)} 
+                                                className="text-xs font-bold text-gray-600 bg-transparent outline-none cursor-pointer"
+                                            >
+                                                <option value="All">Tất cả ({activeFile.jobs.length})</option>
+                                                <option value="Completed">Hoàn thành ({activeFile.jobs.filter(j => j.status === 'Completed').length})</option>
+                                                <option value="Processing">Đang xử lý ({activeFile.jobs.filter(j => j.status === 'Processing' || j.status === 'Generating').length})</option>
+                                                <option value="Pending">Chờ xử lý ({activeFile.jobs.filter(j => j.status === 'Pending').length})</option>
+                                                <option value="Failed">Thất bại ({activeFile.jobs.filter(j => j.status === 'Failed').length})</option>
+                                            </select>
+                                        </div>
+
                                         <button onClick={handleCombine} className="px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-red-600 text-xs font-bold shadow-sm hover:shadow hover:text-red-700 transition">Ghép File Này</button>
                                         <button onClick={handleCombineAll} className="px-3 py-1.5 rounded-lg bg-red-600 text-white border border-transparent text-xs font-bold shadow-sm hover:bg-red-700 transition">Ghép Tất Cả</button>
                                         <div className="h-4 w-px bg-gray-300 mx-2"></div>
@@ -791,7 +818,7 @@ const Tracker: React.FC = () => {
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-100">
-                                            {activeFile.jobs.map((job, jIdx) => {
+                                            {filteredJobs.map((job, jIdx) => {
                                                 const type = job.typeVideo ? job.typeVideo.toUpperCase() : '';
                                                 
                                                 return (
