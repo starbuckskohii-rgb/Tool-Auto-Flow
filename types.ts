@@ -1,5 +1,5 @@
 
-export type ActiveTab = 'generator' | 'tracker';
+export type ActiveTab = 'generator' | 'tracker' | 'image-generator';
 export type GeneratorTab = 'jesus' | 'trending' | 'seasonal' | 'looping' | 'cafe' | 'starbucks' | 'concert' | 'stage';
 export type JobStatus = 'Pending' | 'Processing' | 'Generating' | 'Completed' | 'Failed';
 

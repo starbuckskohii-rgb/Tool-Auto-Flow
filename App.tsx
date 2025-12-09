@@ -1,5 +1,6 @@
 
 
+
 import React, {
   useState,
   useCallback,
@@ -14,7 +15,7 @@ import { ideaMatrix, criticalRules, cinematicQualityRule, religiousGuardrails, M
 import { 
     LoaderIcon, KeyIcon, TrashIcon, CogIcon, InfoIcon, DownloadIcon, XCircleIcon,
     FlameIcon, CalendarIcon, LoopIcon, CoffeeIcon, MicIcon, StageIcon,
-    SparklesIcon, ClockIcon, LightningIcon, UserIcon, MountainIcon, UploadIcon
+    SparklesIcon, ClockIcon, LightningIcon, UserIcon, MountainIcon, UploadIcon, ImageIcon
 } from './components/Icons';
 import Tracker from './components/Tracker';
 
@@ -129,6 +130,10 @@ const App: React.FC = () => {
     const [loadingText, setLoadingText] = useState('');
     const [feedback, setFeedback] = useState<{type: 'error'|'success', message: string}|null>(null);
     const [characterAnalysis, setCharacterAnalysis] = useState('');
+
+    // --- Image Generator State ---
+    const [imageInputRaw, setImageInputRaw] = useState('');
+    const [imagePrompts, setImagePrompts] = useState<PromptItem[]>([]);
 
     // --- Constants ---
     const SECRET_KEY = 'your-super-secret-key-for-mv-prompt-generator-pro-2024';
@@ -510,6 +515,67 @@ const App: React.FC = () => {
         }
     };
 
+    // --- Image Generator Logic ---
+
+    const processImageInput = () => {
+        if (!imageInputRaw.trim()) {
+            setFeedback({ type: 'error', message: 'Vui lòng nhập dữ liệu prompt!' });
+            return;
+        }
+
+        try {
+            // Split by new lines and filter empty ones
+            const lines = imageInputRaw.split('\n').filter(line => line.trim() !== '');
+            const parsed = lines.map((line, idx) => {
+                // Regex to strip "Day X:", "Prompt X:" (case insensitive) at the start of the line
+                // It also handles optional space after colon
+                const cleanText = line.replace(/^(Day|Prompt)\s*\d+\s*:\s*/i, '').trim();
+                return {
+                    id: idx + 1,
+                    prompt_text: cleanText,
+                    is_subject_lock: false // Image prompts generally don't use this flag in the same way, or implied
+                };
+            });
+
+            setImagePrompts(parsed);
+            setFeedback({ type: 'success', message: `Đã lọc được ${parsed.length} prompt!` });
+        } catch (e) {
+            setFeedback({ type: 'error', message: 'Lỗi xử lý dữ liệu đầu vào.' });
+        }
+    };
+
+    const downloadImageExcel = async () => {
+        if (imagePrompts.length === 0) return;
+        const today = new Date();
+        const dateStr = `${today.getDate().toString().padStart(2, '0')}${(today.getMonth() + 1).toString().padStart(2, '0')}`;
+        const prefix = 'IMG';
+        const fileName = `${prefix}${dateStr}_${Date.now().toString().slice(-4)}.xlsx`;
+
+        const data = imagePrompts.map((p, i) => ({
+            JOB_ID: `Job_${i + 1}`,
+            PROMPT: p.prompt_text,
+            IMAGE_PATH: '', IMAGE_PATH_2: '', IMAGE_PATH_3: '',
+            STATUS: '',
+            VIDEO_NAME: `${prefix}_${dateStr}-${i + 1}`,
+            TYPE_VIDEO: 'IMG' // Always 'IMG' as requested
+        }));
+        
+        const worksheet = XLSX.utils.json_to_sheet(data);
+        worksheet['!cols'] = [{ wch: 10 }, { wch: 150 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 10 }, { wch: 20 }, { wch: 10 }];
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Image Prompts");
+
+        if (isElectron && ipcRenderer) {
+            const buffer = XLSX.write(workbook, { type: 'array', bookType: 'xlsx' });
+            const result = await ipcRenderer.invoke('save-file-dialog', { defaultPath: fileName, fileContent: buffer });
+            if (result.success) {
+                setFeedback({ type: 'success', message: `Đã lưu file ảnh: ${result.filePath}` });
+            }
+        } else {
+            XLSX.writeFile(workbook, fileName);
+        }
+    };
+
     const getTabIcon = (tab: GeneratorTab) => {
         switch(tab) {
             case 'jesus': return <span className="text-lg">✝️</span>;
@@ -604,6 +670,9 @@ const App: React.FC = () => {
                              <div className="hidden md:flex bg-gray-100/80 p-1 rounded-xl border border-gray-200 shadow-inner">
                                  <button onClick={() => setActiveTab('tracker')} className={`px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${activeTab === 'tracker' ? 'bg-green-600 text-white shadow-md' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'}`}>Theo Dõi Sản Xuất</button>
                                  <button onClick={() => setActiveTab('generator')} className={`px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${activeTab === 'generator' ? 'bg-red-600 text-white shadow-md' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'}`}>Tạo Kịch Bản</button>
+                                 <button onClick={() => setActiveTab('image-generator')} className={`px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 flex items-center gap-2 ${activeTab === 'image-generator' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'}`}>
+                                    <ImageIcon className="w-4 h-4" /> Tạo Ảnh (IMG)
+                                 </button>
                              </div>
                          </div>
                          <div className="flex items-center gap-3">
@@ -888,6 +957,79 @@ const App: React.FC = () => {
                                 <button onClick={downloadExcel} className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-full shadow-2xl hover:shadow-green-500/30 hover:-translate-y-1 transition-all flex items-center gap-3 border-2 border-white/20 backdrop-blur-md">
                                     <DownloadIcon className="w-5 h-5" />
                                     <span>Tải File Excel</span>
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                )}
+                
+                {activeTab === 'image-generator' && (
+                    <div className="space-y-6">
+                         <div className="glass-card bg-white p-6 rounded-2xl shadow-sm border border-blue-100">
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-lg font-bold text-blue-800 flex items-center gap-2">
+                                    <ImageIcon className="w-6 h-6"/> TẠO PROMPT HÌNH ẢNH (IMG)
+                                </h3>
+                            </div>
+                            
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="text-xs font-extrabold text-gray-600 uppercase flex items-center gap-1 mb-2">
+                                        Dữ liệu đầu vào (Dán text vào đây)
+                                    </label>
+                                    <textarea 
+                                        value={imageInputRaw}
+                                        onChange={e => setImageInputRaw(e.target.value)}
+                                        className="w-full h-64 p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 focus:ring-2 focus:ring-blue-200 focus:border-blue-400 outline-none transition shadow-sm font-mono" 
+                                        placeholder={`Day 1: Mô tả hình ảnh...\n\nDay 2: Mô tả tiếp theo...`} 
+                                    />
+                                    <p className="text-[10px] text-gray-400 mt-2">* Hệ thống sẽ tự động lọc bỏ các tiền tố như "Day 1:", "Prompt 1:" để lấy nội dung chính.</p>
+                                </div>
+                                <button 
+                                    onClick={processImageInput} 
+                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg transition-all"
+                                >
+                                    XỬ LÝ DỮ LIỆU
+                                </button>
+                            </div>
+                         </div>
+
+                        {imagePrompts.length > 0 && (
+                            <div className="glass-card overflow-hidden bg-white animate-fade-in-up mb-24 border border-gray-100 shadow-lg">
+                                <div className="p-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                                    <h3 className="text-xs font-black text-gray-600 uppercase tracking-widest">Kết quả Hình Ảnh</h3>
+                                    <span className="text-[10px] font-bold text-gray-400 bg-white px-2 py-1 rounded border border-gray-200 shadow-sm">{imagePrompts.length} ITEMS</span>
+                                </div>
+                                <div className="overflow-x-auto max-h-[60vh] custom-scrollbar">
+                                    <table className="w-full text-sm text-left text-gray-700">
+                                        <thead className="text-[10px] text-gray-400 uppercase bg-white sticky top-0 z-10 shadow-sm">
+                                            <tr>
+                                                <th className="px-6 py-4 font-extrabold tracking-widest w-16">STT</th>
+                                                <th className="px-6 py-4 font-extrabold tracking-widest">Prompt (Cleaned)</th>
+                                                <th className="px-6 py-4 font-extrabold tracking-widest text-center w-24">Type</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-50">
+                                            {imagePrompts.map(p => (
+                                                <tr key={p.id} className="hover:bg-blue-50 transition group">
+                                                    <td className="px-6 py-4 font-mono text-xs text-gray-400 font-bold group-hover:text-blue-500">{p.id}</td>
+                                                    <td className="px-6 py-4 text-xs text-gray-600 leading-relaxed font-medium">{p.prompt_text}</td>
+                                                    <td className="px-6 py-4 text-center">
+                                                        <span className="inline-flex items-center px-2 py-1 rounded text-[9px] font-bold bg-green-100 text-green-700">IMG</span>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+
+                        {imagePrompts.length > 0 && (
+                            <div className="fixed bottom-8 right-8 z-40 floating-enter">
+                                <button onClick={downloadImageExcel} className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-full shadow-2xl hover:shadow-green-500/30 hover:-translate-y-1 transition-all flex items-center gap-3 border-2 border-white/20 backdrop-blur-md">
+                                    <DownloadIcon className="w-5 h-5" />
+                                    <span>Tải File Excel (IMG)</span>
                                 </button>
                             </div>
                         )}
