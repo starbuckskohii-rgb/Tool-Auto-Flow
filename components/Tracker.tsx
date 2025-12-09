@@ -15,7 +15,9 @@ import {
   LinkIcon,
   UploadIcon,
   ChevronUpIcon,
-  ChevronDownIcon
+  ChevronDownIcon,
+  MaximizeIcon,
+  XCircleIcon
 } from './Icons';
 
 const isElectron = navigator.userAgent.toLowerCase().includes('electron');
@@ -45,6 +47,7 @@ const Tracker: React.FC = () => {
 
     // Activity Log State
     const [activityLogs, setActivityLogs] = useState<LogEntry[]>([]);
+    const [isLogModalOpen, setIsLogModalOpen] = useState(false);
     const prevCompletedRef = useRef<Set<string> | null>(null);
 
     // Stats
@@ -179,9 +182,9 @@ const Tracker: React.FC = () => {
 
         if (newEntries.length > 0) {
             setActivityLogs(prev => {
-                // Prepend new logs and keep only last 30
+                // Prepend new logs and keep only last 100 for better history in modal
                 const updated = [...newEntries, ...prev];
-                return updated.slice(0, 30);
+                return updated.slice(0, 100);
             });
         }
 
@@ -529,6 +532,53 @@ const Tracker: React.FC = () => {
     return (
         <div className="flex flex-col h-[calc(100vh-100px)]">
             
+            {/* Recent Activity Log Modal */}
+            {isLogModalOpen && (
+                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl w-[600px] max-h-[80vh] flex flex-col overflow-hidden animate-fade-in-up border border-gray-100">
+                        <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                            <h3 className="text-lg font-bold text-gray-700 flex items-center gap-2">
+                                <span className="text-green-500">⚡</span> Lịch sử hoạt động
+                            </h3>
+                            <button onClick={() => setIsLogModalOpen(false)} className="text-gray-400 hover:text-red-500 transition">
+                                <XCircleIcon className="w-6 h-6" />
+                            </button>
+                        </div>
+                        <div className="overflow-y-auto flex-1 p-0 custom-scrollbar">
+                            {activityLogs.length === 0 ? (
+                                <div className="p-8 text-center text-gray-400">Chưa có hoạt động nào được ghi nhận.</div>
+                            ) : (
+                                <table className="w-full text-sm text-left">
+                                    <thead className="text-[10px] text-gray-400 uppercase bg-white sticky top-0 shadow-sm z-10">
+                                        <tr>
+                                            <th className="px-6 py-3 font-extrabold tracking-widest w-24">Thời gian</th>
+                                            <th className="px-6 py-3 font-extrabold tracking-widest w-24">Job ID</th>
+                                            <th className="px-6 py-3 font-extrabold tracking-widest">File</th>
+                                            <th className="px-6 py-3 font-extrabold tracking-widest text-right">Trạng thái</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-50">
+                                        {activityLogs.map(log => (
+                                            <tr key={log.uniqueId} className="hover:bg-green-50 transition">
+                                                <td className="px-6 py-3 font-mono text-xs text-gray-400">{log.time}</td>
+                                                <td className="px-6 py-3 font-bold text-green-600">{log.jobId}</td>
+                                                <td className="px-6 py-3 text-gray-600 truncate max-w-[200px]" title={log.fileName}>{log.fileName}</td>
+                                                <td className="px-6 py-3 text-right">
+                                                    <span className="inline-block px-2 py-0.5 bg-green-100 text-green-700 text-[9px] font-bold rounded uppercase">Completed</span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            )}
+                        </div>
+                        <div className="p-3 border-t border-gray-100 bg-gray-50 text-right">
+                            <button onClick={() => setIsLogModalOpen(false)} className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-100">Đóng</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Global Top Bar (Collapsible) */}
             <div className={`transition-all duration-300 ease-in-out bg-white/80 backdrop-blur-md rounded-2xl p-2 mb-2 shadow-sm border border-green-100 relative overflow-hidden ${isStatsExpanded ? 'h-20 opacity-100' : 'h-0 opacity-0 mb-0 border-0 p-0'}`}>
                  <div className="flex items-center h-full justify-between">
@@ -568,8 +618,17 @@ const Tracker: React.FC = () => {
                         {/* Recent Activity Log Panel */}
                         <div className="px-4 flex flex-col justify-center h-full border-l border-gray-100 flex-1 min-w-[240px] max-w-[400px] overflow-hidden">
                              <div className="flex justify-between items-end mb-1">
-                                 <span className="text-[10px] text-gray-400 font-extrabold uppercase tracking-widest">HOẠT ĐỘNG GẦN ĐÂY</span>
-                                 <span className="text-[9px] text-gray-300 font-bold">{activityLogs.length}/30</span>
+                                 <div className="flex items-center gap-2">
+                                    <span className="text-[10px] text-gray-400 font-extrabold uppercase tracking-widest">HOẠT ĐỘNG GẦN ĐÂY</span>
+                                    <button 
+                                        onClick={() => setIsLogModalOpen(true)}
+                                        className="text-gray-300 hover:text-blue-500 transition p-0.5 rounded hover:bg-blue-50"
+                                        title="Mở rộng lịch sử"
+                                    >
+                                        <MaximizeIcon className="w-3 h-3" />
+                                    </button>
+                                 </div>
+                                 <span className="text-[9px] text-gray-300 font-bold">{activityLogs.length}/100</span>
                              </div>
                              <div className="overflow-y-auto custom-scrollbar h-12 pr-1 space-y-1">
                                 {activityLogs.length === 0 ? (
