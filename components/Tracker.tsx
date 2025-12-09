@@ -29,12 +29,23 @@ const PlusIcon: React.FC<{ className?: string }> = ({ className }) => (
     </svg>
 );
 
+interface LogEntry {
+    uniqueId: string;
+    time: string;
+    jobId: string;
+    fileName: string;
+}
+
 const Tracker: React.FC = () => {
     const [files, setFiles] = useState<TrackedFile[]>([]);
     const [activeFileIndex, setActiveFileIndex] = useState<number>(0);
     const [loading, setLoading] = useState(false);
     const [combineMode, setCombineMode] = useState<'normal' | 'timed'>('normal');
     const [isStatsExpanded, setIsStatsExpanded] = useState(true);
+
+    // Activity Log State
+    const [activityLogs, setActivityLogs] = useState<LogEntry[]>([]);
+    const prevCompletedRef = useRef<Set<string> | null>(null);
 
     // Stats
     const totalFiles = files.length;
@@ -126,6 +137,56 @@ const Tracker: React.FC = () => {
         const paths = files.map(f => f.path).filter(p => !!p) as string[];
         ipcRenderer.invoke('save-app-config', { trackedFilePaths: paths });
     }, [files.length, files.map(f=>f.path).join(',')]); 
+
+    // --- Log Update Logic ---
+    useEffect(() => {
+        const currentCompleted = new Set<string>();
+        files.forEach(f => {
+            if (f.path) {
+                f.jobs.forEach(j => {
+                    if (j.status === 'Completed') {
+                        currentCompleted.add(`${f.path}::${j.id}`);
+                    }
+                });
+            }
+        });
+
+        if (prevCompletedRef.current === null) {
+            // First initialization (startup): Set baseline, don't log existings.
+            prevCompletedRef.current = currentCompleted;
+            return;
+        }
+
+        const newEntries: LogEntry[] = [];
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+        currentCompleted.forEach(key => {
+            if (!prevCompletedRef.current?.has(key)) {
+                // New completion detected
+                const [path, jobId] = key.split('::');
+                const file = files.find(f => f.path === path);
+                if (file) {
+                    newEntries.push({
+                        uniqueId: Math.random().toString(36).substr(2, 9),
+                        time: timeStr,
+                        jobId: jobId,
+                        fileName: file.name
+                    });
+                }
+            }
+        });
+
+        if (newEntries.length > 0) {
+            setActivityLogs(prev => {
+                // Prepend new logs and keep only last 30
+                const updated = [...newEntries, ...prev];
+                return updated.slice(0, 30);
+            });
+        }
+
+        prevCompletedRef.current = currentCompleted;
+    }, [files]);
 
     // --- IPC Listeners ---
     useEffect(() => {
@@ -414,7 +475,7 @@ const Tracker: React.FC = () => {
                         ? 'border-transparent hover:shadow-lg' 
                         : 'border-dashed border-gray-300 hover:border-blue-400 bg-gray-50 hover:bg-blue-50'
                     }
-                    ${job.typeVideo === 'I2V' ? 'w-24 h-24' : 'w-20 h-20'}
+                    ${job.typeVideo === 'I2V' || job.typeVideo === 'IMG' ? 'w-24 h-24' : 'w-20 h-20'}
                 `}
                 title={`Upload Image ${slotIndex}`}
             >
@@ -501,6 +562,27 @@ const Tracker: React.FC = () => {
                                     className={`h-full rounded-full transition-all duration-700 ease-out ${globalPercent === 100 ? 'bg-green-500' : 'bg-gray-300'}`} 
                                     style={{ width: `${globalPercent}%` }}
                                 ></div>
+                             </div>
+                        </div>
+
+                        {/* Recent Activity Log Panel */}
+                        <div className="px-4 flex flex-col justify-center h-full border-l border-gray-100 flex-1 min-w-[240px] max-w-[400px] overflow-hidden">
+                             <div className="flex justify-between items-end mb-1">
+                                 <span className="text-[10px] text-gray-400 font-extrabold uppercase tracking-widest">HOẠT ĐỘNG GẦN ĐÂY</span>
+                                 <span className="text-[9px] text-gray-300 font-bold">{activityLogs.length}/30</span>
+                             </div>
+                             <div className="overflow-y-auto custom-scrollbar h-12 pr-1 space-y-1">
+                                {activityLogs.length === 0 ? (
+                                     <div className="text-[10px] text-gray-300 italic">Chưa có dữ liệu mới...</div>
+                                ) : (
+                                    activityLogs.map(log => (
+                                        <div key={log.uniqueId} className="text-[10px] flex items-center gap-2">
+                                            <span className="font-mono text-gray-400 text-[9px]">{log.time}</span>
+                                            <span className="font-bold text-green-600">{log.jobId}</span>
+                                            <span className="text-gray-500 truncate flex-1" title={log.fileName}>{log.fileName}</span>
+                                        </div>
+                                    ))
+                                )}
                              </div>
                         </div>
                      </div>
@@ -664,12 +746,14 @@ const Tracker: React.FC = () => {
                                                                     text-xs font-bold rounded-full py-1.5 px-3 outline-none shadow-sm cursor-pointer transition border
                                                                     ${type === 'I2V' ? 'bg-blue-50 text-blue-600 border-blue-200' : 
                                                                       type === 'IN2V' ? 'bg-purple-50 text-purple-600 border-purple-200' : 
+                                                                      type === 'IMG' ? 'bg-green-50 text-green-600 border-green-200' :
                                                                       'bg-gray-100 text-gray-500 border-gray-200'}
                                                                 `}
                                                             >
                                                                 <option value="">None</option>
                                                                 <option value="I2V">I2V</option>
                                                                 <option value="IN2V">IN2V</option>
+                                                                <option value="IMG">IMG</option>
                                                             </select>
                                                         </td>
 
@@ -678,8 +762,8 @@ const Tracker: React.FC = () => {
                                                             <div className="flex items-center gap-3">
                                                                 {!type ? (
                                                                     <span className="text-[10px] text-gray-300 italic font-medium select-none px-2">Disabled</span>
-                                                                ) : type === 'I2V' ? (
-                                                                    // I2V: Single Slot
+                                                                ) : (type === 'I2V' || type === 'IMG') ? (
+                                                                    // I2V and IMG: Single Slot
                                                                     renderImageSlot(job, 1)
                                                                 ) : type === 'IN2V' ? (
                                                                     // IN2V: Three Slots
