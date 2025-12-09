@@ -1,5 +1,7 @@
 
 
+
+
 // electron.js
 const { app, BrowserWindow, ipcMain, dialog, shell, Menu } = require('electron');
 const path = require('path');
@@ -16,6 +18,16 @@ autoUpdater.logger.transports.file.level = 'info';
 // Tắt tự động download để người dùng chọn
 autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = true;
+
+// --- CURRENT CHANGELOG (For About Menu) ---
+const CURRENT_CHANGELOG = `
+Phiên bản 1.1.2:
+- Thêm video type IMG: Tạo video từ ảnh tĩnh.
+- Cải tiến Tracker: Thêm lịch sử hoạt động (Recent Activity) chi tiết lên tới 100 log.
+- Giao diện mới: Modal xem lịch sử hoạt động, nút Maximize tiện lợi.
+- Tối ưu hóa: Giảm thiểu độ trễ khi cập nhật trạng thái file Excel.
+- Fix lỗi: Xử lý lỗi hiển thị icon trên một số màn hình độ phân giải cao.
+`;
 
 // --- BIẾN TOÀN CỤC (WATCHER & STATS) ---
 const fileWatchers = new Map();
@@ -354,6 +366,7 @@ function createWindow() {
   
   // Khi có bản cập nhật, không tự tải mà gửi thông tin cho người dùng chọn
   autoUpdater.on('update-available', (info) => {
+      // releaseNotes có thể là HTML string hoặc array
       mainWindow?.webContents.send('update-available-prompt', info);
       mainWindow?.webContents.send('update-status', 'available');
   });
@@ -402,7 +415,22 @@ app.whenReady().then(() => {
                 }
             }
         },
-        { label: `Phiên bản ${app.getVersion()}`, enabled: false }
+        { type: 'separator' },
+        { 
+            label: 'Thông tin ứng dụng (About)',
+            click: () => {
+                const focusedWindow = BrowserWindow.getFocusedWindow();
+                if (focusedWindow) {
+                    dialog.showMessageBox(focusedWindow, {
+                        type: 'info',
+                        title: 'Thông tin ứng dụng',
+                        message: `Trọng Tool Auto Flow v${app.getVersion()}`,
+                        detail: `Ứng dụng tự động hóa quy trình sản xuất Video AI.\n\n${CURRENT_CHANGELOG}\n\n© 2024 Starbuckskohii-rgb.`,
+                        buttons: ['OK']
+                    });
+                }
+            }
+        }
     ]}
   ];
   Menu.setApplicationMenu(Menu.buildFromTemplate(menuTemplate));
