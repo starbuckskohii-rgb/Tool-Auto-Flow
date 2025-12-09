@@ -15,7 +15,8 @@ import { ideaMatrix, criticalRules, cinematicQualityRule, religiousGuardrails, M
 import { 
     LoaderIcon, KeyIcon, TrashIcon, CogIcon, InfoIcon, DownloadIcon, XCircleIcon,
     FlameIcon, CalendarIcon, LoopIcon, CoffeeIcon, MicIcon, StageIcon,
-    SparklesIcon, ClockIcon, LightningIcon, UserIcon, MountainIcon, UploadIcon, ImageIcon
+    SparklesIcon, ClockIcon, LightningIcon, UserIcon, MountainIcon, UploadIcon, ImageIcon,
+    LayoutDashboardIcon, FileTextIcon
 } from './components/Icons';
 import Tracker from './components/Tracker';
 
@@ -668,8 +669,12 @@ const App: React.FC = () => {
                                  <span>🎄</span> Trọng - Tool Auto Flow
                              </h1>
                              <div className="hidden md:flex bg-gray-100/80 p-1 rounded-xl border border-gray-200 shadow-inner">
-                                 <button onClick={() => setActiveTab('tracker')} className={`px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${activeTab === 'tracker' ? 'bg-green-600 text-white shadow-md' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'}`}>Theo Dõi Sản Xuất</button>
-                                 <button onClick={() => setActiveTab('generator')} className={`px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${activeTab === 'generator' ? 'bg-red-600 text-white shadow-md' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'}`}>Tạo Kịch Bản</button>
+                                 <button onClick={() => setActiveTab('tracker')} className={`px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 flex items-center gap-2 ${activeTab === 'tracker' ? 'bg-green-600 text-white shadow-md' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'}`}>
+                                    <LayoutDashboardIcon className="w-4 h-4" /> Bảng Điều Khiển
+                                 </button>
+                                 <button onClick={() => setActiveTab('generator')} className={`px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 flex items-center gap-2 ${activeTab === 'generator' ? 'bg-red-600 text-white shadow-md' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'}`}>
+                                    <FileTextIcon className="w-4 h-4" /> Tạo Kịch Bản
+                                 </button>
                                  <button onClick={() => setActiveTab('image-generator')} className={`px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 flex items-center gap-2 ${activeTab === 'image-generator' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'}`}>
                                     <ImageIcon className="w-4 h-4" /> Tạo Ảnh (IMG)
                                  </button>

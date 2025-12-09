@@ -1,5 +1,7 @@
 
 
+
+
 import React, { useState, useEffect, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import { TrackedFile, VideoJob } from '../types';
@@ -17,7 +19,8 @@ import {
   ChevronUpIcon,
   ChevronDownIcon,
   MaximizeIcon,
-  XCircleIcon
+  XCircleIcon,
+  TableDeleteIcon
 } from './Icons';
 
 const isElectron = navigator.userAgent.toLowerCase().includes('electron');
@@ -325,6 +328,29 @@ const Tracker: React.FC = () => {
         try {
             await ipcRenderer.invoke('retry-job', { filePath: activeFile.path, jobId: job.id });
             await handleRefresh();
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDeleteJobFromExcel = async (job: VideoJob) => {
+        const activeFile = files[activeFileIndex];
+        if (!activeFile || !ipcRenderer || !activeFile.path) return;
+
+        if (!confirm(`⚠️ CẢNH BÁO: Bạn có chắc chắn muốn xóa Job "${job.id}" khỏi file Excel không?\n\nHành động này sẽ:\n1. Xóa dòng chứa job này trong file Excel.\n2. Tự động đánh lại số thứ tự (Job_1, Job_2...) cho các job phía sau.`)) return;
+
+        setLoading(true);
+        try {
+            const result = await ipcRenderer.invoke('delete-job-from-excel', { 
+                filePath: activeFile.path, 
+                jobId: job.id 
+            });
+
+            if (result.success) {
+                await handleRefresh();
+            } else {
+                alert(`Lỗi xóa job: ${result.error}`);
+            }
         } finally {
             setLoading(false);
         }
@@ -846,14 +872,16 @@ const Tracker: React.FC = () => {
                                                         </td>
                                                         <td className="px-6 py-4 align-middle">
                                                             <div className="flex justify-end items-center gap-2">
-                                                                <button onClick={() => handleResetJob(job)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-50 text-gray-400 hover:bg-red-500 hover:text-white transition-all duration-200 shadow-sm hover:shadow-md border border-gray-100" title="Tạo lại"><RetryIcon className="w-4 h-4" /></button>
+                                                                <button onClick={() => handleResetJob(job)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-50 text-gray-400 hover:bg-yellow-500 hover:text-white transition-all duration-200 shadow-sm hover:shadow-md border border-gray-100" title="Tạo lại"><RetryIcon className="w-4 h-4" /></button>
                                                                 {job.videoPath ? (
                                                                     <>
                                                                         <button onClick={() => handleVideoAction('play', job)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-green-50 text-green-600 hover:bg-green-500 hover:text-white transition-all duration-200 shadow-sm hover:shadow-md border border-green-100"><PlayIcon className="w-4 h-4"/></button>
                                                                         <button onClick={() => handleVideoAction('folder', job)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-500 hover:text-white transition-all duration-200 shadow-sm hover:shadow-md border border-blue-100"><FolderIcon className="w-4 h-4"/></button>
-                                                                        <button onClick={() => handleVideoAction('delete', job)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all duration-200 shadow-sm hover:shadow-md border border-red-100"><TrashIcon className="w-4 h-4"/></button>
+                                                                        <button onClick={() => handleVideoAction('delete', job)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all duration-200 shadow-sm hover:shadow-md border border-red-100" title="Xóa file video"><TrashIcon className="w-4 h-4"/></button>
                                                                     </>
                                                                 ) : <div className="w-[120px]"></div>}
+                                                                
+                                                                <button onClick={() => handleDeleteJobFromExcel(job)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-100 text-gray-400 hover:bg-red-600 hover:text-white transition-all duration-200 shadow-sm hover:shadow-md border border-gray-200 ml-2" title="Xóa Job khỏi Excel"><TableDeleteIcon className="w-4 h-4" /></button>
                                                             </div>
                                                         </td>
                                                     </tr>

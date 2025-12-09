@@ -2,6 +2,8 @@
 
 
 
+
+
 // electron.js
 const { app, BrowserWindow, ipcMain, dialog, shell, Menu } = require('electron');
 const path = require('path');
@@ -621,6 +623,56 @@ ipcMain.handle('set-tool-flow-path', async () => {
 
 ipcMain.handle('retry-job', async (event, { filePath, jobId }) => {
     return await updateExcelStatus(filePath, [jobId], '');
+});
+
+ipcMain.handle('delete-job-from-excel', async (event, { filePath, jobId }) => {
+    try {
+        if (!fs.existsSync(filePath)) throw new Error('File not found');
+        const fileContent = fs.readFileSync(filePath);
+        const workbook = XLSX.read(fileContent, { type: 'buffer' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        
+        // Read data with header
+        const data = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+        
+        if (data.length < 2) throw new Error('Excel is empty or invalid');
+        
+        const headers = data[0].map(h => String(h).trim());
+        const idIndex = headers.indexOf('JOB_ID');
+        if (idIndex === -1) throw new Error('JOB_ID column not found');
+
+        // Create new data array skipping the row to delete
+        const newData = [data[0]]; // Keep headers
+        let rowDeleted = false;
+        
+        // Filter rows
+        for (let i = 1; i < data.length; i++) {
+            if (String(data[i][idIndex]) !== String(jobId)) {
+                newData.push(data[i]);
+            } else {
+                rowDeleted = true;
+            }
+        }
+
+        if (!rowDeleted) throw new Error('Job not found');
+
+        // Renumber IDs sequentially (Job_1, Job_2, ...)
+        for (let i = 1; i < newData.length; i++) {
+            newData[i][idIndex] = `Job_${i}`;
+        }
+
+        // Write back
+        const newSheet = XLSX.utils.aoa_to_sheet(newData);
+        if (worksheet['!cols']) newSheet['!cols'] = worksheet['!cols'];
+        const newWorkbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(newWorkbook, newSheet, sheetName);
+        fs.writeFileSync(filePath, XLSX.write(newWorkbook, { bookType: 'xlsx', type: 'buffer' }));
+
+        return { success: true };
+    } catch (e) {
+        return { success: false, error: e.message };
+    }
 });
 
 ipcMain.handle('retry-stuck-jobs', async (event, { filePath }) => {
