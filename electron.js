@@ -1,9 +1,3 @@
-
-
-
-
-
-
 // electron.js
 const { app, BrowserWindow, ipcMain, dialog, shell, Menu } = require('electron');
 const path = require('path');
@@ -124,15 +118,16 @@ function incrementPromptCount() {
 // --- HÀM HỖ TRỢ FILE & VIDEO ---
 function getFilesFromDirectories(dirs) {
     let files = [];
-    const videoExtensions = ['.mp4', '.mov', '.avi', '.mkv', '.webm'];
+    // UPDATED: Added image extensions to the scan list
+    const validExtensions = ['.mp4', '.mov', '.avi', '.mkv', '.webm', '.jpg', '.jpeg', '.png', '.webp'];
     dirs.forEach(dir => {
         try {
             if (fs.existsSync(dir)) {
                 const dirents = fs.readdirSync(dir, { withFileTypes: true });
-                const videoFiles = dirents
-                    .filter(dirent => dirent.isFile() && videoExtensions.includes(path.extname(dirent.name).toLowerCase()))
+                const mediaFiles = dirents
+                    .filter(dirent => dirent.isFile() && validExtensions.includes(path.extname(dirent.name).toLowerCase()))
                     .map(dirent => path.join(dir, dirent.name));
-                files = [...files, ...videoFiles];
+                files = [...files, ...mediaFiles];
             }
         } catch (e) {}
     });
@@ -144,7 +139,7 @@ function scanVideosInternal(jobs, excelFilePath) {
     const excelNameNoExt = path.basename(excelFilePath, '.xlsx');
     const subDir = path.join(rootDir, excelNameNoExt);
     const targetDirs = [rootDir, subDir];
-    const videoFiles = getFilesFromDirectories(targetDirs);
+    const mediaFiles = getFilesFromDirectories(targetDirs);
     
     return jobs.map(job => {
         if (job.videoPath && fs.existsSync(job.videoPath)) return job;
@@ -154,7 +149,7 @@ function scanVideosInternal(jobs, excelFilePath) {
             const idNumber = jobId.replace(/[^0-9]/g, '');
             if (idNumber) {
                const regex = new RegExp(`Job_0*${idNumber}(?:[^0-9]|$)`, 'i');
-               const matchedFile = videoFiles.find(f => regex.test(path.basename(f)));
+               const matchedFile = mediaFiles.find(f => regex.test(path.basename(f)));
                if (matchedFile) return { ...job, videoPath: matchedFile, status: 'Completed' };
             }
         }
@@ -163,7 +158,7 @@ function scanVideosInternal(jobs, excelFilePath) {
              const cleanName = job.videoName.trim();
              const escapedName = cleanName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
              const nameRegex = new RegExp(`${escapedName}(?:[^0-9]|$)`, 'i');
-             const matchedFileByName = videoFiles.find(f => nameRegex.test(path.basename(f, path.extname(f))));
+             const matchedFileByName = mediaFiles.find(f => nameRegex.test(path.basename(f, path.extname(f))));
              if (matchedFileByName) return { ...job, videoPath: matchedFileByName, status: 'Completed' };
         }
         return job;
@@ -181,9 +176,9 @@ function syncStatsAndState(filePath, jobs, explicitInit = false) {
     let newCompletionCount = 0;
 
     updatedJobs.forEach(job => {
-        const hasVideo = !!job.videoPath;
+        const hasFile = !!job.videoPath;
         const jobId = job.id;
-        if (hasVideo) {
+        if (hasFile) {
             if (!knownCompletedSet.has(jobId)) {
                 knownCompletedSet.add(jobId);
                 if (!explicitInit && !isFirstTimeSeeingFile) {

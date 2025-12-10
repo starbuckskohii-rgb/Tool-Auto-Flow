@@ -1,4 +1,3 @@
-
 // main.js
 const { app, BrowserWindow, ipcMain, dialog, shell, Menu, Notification } = require('electron');
 const path = require('path');
@@ -113,16 +112,17 @@ function incrementPromptCount() {
 // Helper to get files strictly from specific directories (Non-recursive)
 function getFilesFromDirectories(dirs) {
     let files = [];
-    const videoExtensions = ['.mp4', '.mov', '.avi', '.mkv', '.webm'];
+    // UPDATED: Added image extensions to the scan list
+    const mediaExtensions = ['.mp4', '.mov', '.avi', '.mkv', '.webm', '.jpg', '.jpeg', '.png', '.webp'];
     
     dirs.forEach(dir => {
         try {
             if (fs.existsSync(dir)) {
                 const dirents = fs.readdirSync(dir, { withFileTypes: true });
-                const videoFiles = dirents
-                    .filter(dirent => dirent.isFile() && videoExtensions.includes(path.extname(dirent.name).toLowerCase()))
+                const mediaFiles = dirents
+                    .filter(dirent => dirent.isFile() && mediaExtensions.includes(path.extname(dirent.name).toLowerCase()))
                     .map(dirent => path.join(dir, dirent.name));
-                files = [...files, ...videoFiles];
+                files = [...files, ...mediaFiles];
             }
         } catch (e) {
             // Directory might not exist yet, which is fine
@@ -138,7 +138,7 @@ function scanVideosInternal(jobs, excelFilePath) {
     const subDir = path.join(rootDir, excelNameNoExt);
     
     const targetDirs = [rootDir, subDir];
-    const videoFiles = getFilesFromDirectories(targetDirs);
+    const mediaFiles = getFilesFromDirectories(targetDirs);
     
     return jobs.map(job => {
         // If manually linked and exists, keep it
@@ -151,7 +151,7 @@ function scanVideosInternal(jobs, excelFilePath) {
             if (idNumber) {
                // Strict Regex: Job_1 matches Job_01 but NOT Job_10
                const regex = new RegExp(`Job_0*${idNumber}(?:[^0-9]|$)`, 'i');
-               const matchedFile = videoFiles.find(f => {
+               const matchedFile = mediaFiles.find(f => {
                     const fileName = path.basename(f);
                     return regex.test(fileName);
                });
@@ -165,7 +165,7 @@ function scanVideosInternal(jobs, excelFilePath) {
              const escapedName = cleanName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
              const nameRegex = new RegExp(`${escapedName}(?:[^0-9]|$)`, 'i');
              
-             const matchedFileByName = videoFiles.find(f => {
+             const matchedFileByName = mediaFiles.find(f => {
                  const fileName = path.basename(f, path.extname(f));
                  return nameRegex.test(fileName);
              });
@@ -195,10 +195,10 @@ function syncStatsAndState(filePath, jobs, explicitInit = false) {
     let newCompletionCount = 0;
 
     updatedJobs.forEach(job => {
-        const hasVideo = !!job.videoPath;
+        const hasFile = !!job.videoPath;
         const jobId = job.id;
 
-        if (hasVideo) {
+        if (hasFile) {
             // If the video exists on disk...
             if (!knownCompletedSet.has(jobId)) {
                 // ...and we didn't know about it in RAM

@@ -1,9 +1,3 @@
-
-
-
-
-
-
 import React, { useState, useEffect, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import { TrackedFile, VideoJob } from '../types';
@@ -28,6 +22,7 @@ import {
 
 const isElectron = navigator.userAgent.toLowerCase().includes('electron');
 const ipcRenderer = isElectron && (window as any).require ? (window as any).require('electron').ipcRenderer : null;
+const fs = isElectron && (window as any).require ? (window as any).require('fs') : null;
 
 // New Icon for Adding Images
 const PlusIcon: React.FC<{ className?: string }> = ({ className }) => (
@@ -51,6 +46,9 @@ const Tracker: React.FC = () => {
     const [combineMode, setCombineMode] = useState<'normal' | 'timed'>('normal');
     const [isStatsExpanded, setIsStatsExpanded] = useState(true);
     const [filterStatus, setFilterStatus] = useState<string>('All');
+    
+    // State để ép buộc reload ảnh (cache busting)
+    const [refreshTrigger, setRefreshTrigger] = useState<number>(Date.now());
 
     // Activity Log State
     const [activityLogs, setActivityLogs] = useState<LogEntry[]>([]);
@@ -109,7 +107,8 @@ const Tracker: React.FC = () => {
 
     const getFileUrl = (path: string) => {
         if (!path) return '';
-        return `file://${path.replace(/\\/g, '/')}`;
+        // Thêm refreshTrigger vào query param để tránh cache trình duyệt khi ảnh thay đổi
+        return `file://${path.replace(/\\/g, '/')}?t=${refreshTrigger}`;
     };
 
     // --- Startup & Persistence ---
@@ -162,7 +161,6 @@ const Tracker: React.FC = () => {
         });
 
         if (prevCompletedRef.current === null) {
-            // First initialization (startup): Set baseline, don't log existings.
             prevCompletedRef.current = currentCompleted;
             return;
         }
@@ -173,7 +171,6 @@ const Tracker: React.FC = () => {
 
         currentCompleted.forEach(key => {
             if (!prevCompletedRef.current?.has(key)) {
-                // New completion detected
                 const [path, jobId] = key.split('::');
                 const file = files.find(f => f.path === path);
                 if (file) {
@@ -189,7 +186,6 @@ const Tracker: React.FC = () => {
 
         if (newEntries.length > 0) {
             setActivityLogs(prev => {
-                // Prepend new logs and keep only last 100 for better history in modal
                 const updated = [...newEntries, ...prev];
                 return updated.slice(0, 100);
             });
@@ -213,6 +209,8 @@ const Tracker: React.FC = () => {
                             }
                             return f;
                         }));
+                        // Update timestamp to refresh images if changed via file watcher
+                        setRefreshTrigger(Date.now());
                     }
                 });
         };
@@ -301,13 +299,26 @@ const Tracker: React.FC = () => {
         if (!activeFile || !ipcRenderer) return;
         setLoading(true);
         try {
-            const result = await ipcRenderer.invoke('find-videos-for-jobs', { jobs: activeFile.jobs, excelFilePath: activeFile.path });
+            // RELOAD EXCEL CONTENT FROM DISK
+            let currentJobs = activeFile.jobs;
+            if (activeFile.path && fs && fs.existsSync(activeFile.path)) {
+                try {
+                    const buffer = fs.readFileSync(activeFile.path);
+                    currentJobs = parseExcel(buffer);
+                } catch (readErr) {
+                    console.warn("Could not reload Excel file from disk:", readErr);
+                }
+            }
+
+            const result = await ipcRenderer.invoke('find-videos-for-jobs', { jobs: currentJobs, excelFilePath: activeFile.path });
             if (result.success) {
                 setFiles(prev => {
                     const copy = [...prev];
                     copy[activeFileIndex] = { ...activeFile, jobs: result.jobs };
                     return copy;
                 });
+                // Force images to reload by updating the timestamp trigger
+                setRefreshTrigger(Date.now());
             }
         } finally {
             setLoading(false);
@@ -319,7 +330,7 @@ const Tracker: React.FC = () => {
         if (!activeFile || !ipcRenderer) return;
         if(confirm('Bạn có muốn reset trạng thái các job đang bị kẹt (Processing/Generating) không?')) {
             await ipcRenderer.invoke('retry-stuck-jobs', { filePath: activeFile.path });
-            handleRefresh();
+            await handleRefresh();
         }
     };
     
@@ -413,8 +424,8 @@ const Tracker: React.FC = () => {
         if (action === 'play') ipcRenderer.send('open-video-path', job.videoPath);
         if (action === 'folder') ipcRenderer.send('show-video-in-folder', job.videoPath);
         if (action === 'delete') {
-             ipcRenderer.invoke('delete-video-file', job.videoPath).then((res: any) => {
-                 if (res.success) handleRefresh();
+             ipcRenderer.invoke('delete-video-file', job.videoPath).then(async (res: any) => {
+                 if (res.success) await handleRefresh();
              });
         }
     };
@@ -441,7 +452,7 @@ const Tracker: React.FC = () => {
                 jobId: job.id, 
                 updates: { 'TYPE_VIDEO': newType }
             });
-            handleRefresh();
+            await handleRefresh();
         } finally {
             setLoading(false);
         }
@@ -484,7 +495,7 @@ const Tracker: React.FC = () => {
                     jobId: uploadContext.jobId,
                     updates: { [colName]: saveRes.path }
                 });
-                handleRefresh();
+                await handleRefresh();
             }
         } catch (err: any) {
             alert(`Lỗi upload: ${err.message}`);
@@ -545,6 +556,9 @@ const Tracker: React.FC = () => {
     const fileCompleted = activeFile ? activeFile.jobs.filter(j => j.status === 'Completed').length : 0;
     const fileProcessing = activeFile ? activeFile.jobs.filter(j => j.status === 'Processing' || j.status === 'Generating').length : 0;
     const filePercent = fileTotal > 0 ? Math.round((fileCompleted / fileTotal) * 100) : 0;
+
+    // Helper to check for image extensions
+    const isImageFile = (path: string) => /\.(jpg|jpeg|png|webp)$/i.test(path);
 
     if (!isElectron) return <div className="text-center p-10 text-gray-500">Chức năng này chỉ hoạt động trên phiên bản Desktop (Electron).</div>;
 
@@ -832,21 +846,31 @@ const Tracker: React.FC = () => {
                                                         <td className="px-6 py-3">
                                                             {job.videoPath ? (
                                                                 <div className="relative w-40 h-24 rounded-xl overflow-hidden shadow-sm border border-gray-200 group-hover:shadow-lg group-hover:scale-[1.02] transition bg-black cursor-pointer group/video">
-                                                                    <video 
-                                                                        src={getFileUrl(job.videoPath)}
-                                                                        className="w-full h-full object-cover opacity-90 group-hover/video:opacity-100 transition"
-                                                                        preload="metadata"
-                                                                        muted
-                                                                        loop
-                                                                        onMouseOver={e => e.currentTarget.play().catch(()=>{})}
-                                                                        onMouseOut={e => e.currentTarget.pause()}
-                                                                    />
-                                                                    <div className="absolute bottom-1 right-1 bg-black/60 text-white text-[9px] px-1.5 py-0.5 rounded font-medium backdrop-blur-sm pointer-events-none">Preview</div>
+                                                                    {isImageFile(job.videoPath) ? (
+                                                                        <img 
+                                                                            src={getFileUrl(job.videoPath)}
+                                                                            className="w-full h-full object-cover group-hover/video:opacity-100 transition"
+                                                                            alt="Result Preview"
+                                                                        />
+                                                                    ) : (
+                                                                        <video 
+                                                                            src={getFileUrl(job.videoPath)}
+                                                                            className="w-full h-full object-cover opacity-90 group-hover/video:opacity-100 transition"
+                                                                            preload="metadata"
+                                                                            muted
+                                                                            loop
+                                                                            onMouseOver={e => e.currentTarget.play().catch(()=>{})}
+                                                                            onMouseOut={e => e.currentTarget.pause()}
+                                                                        />
+                                                                    )}
+                                                                    <div className="absolute bottom-1 right-1 bg-black/60 text-white text-[9px] px-1.5 py-0.5 rounded font-medium backdrop-blur-sm pointer-events-none">
+                                                                        {isImageFile(job.videoPath) ? 'IMG Preview' : 'Video Preview'}
+                                                                    </div>
                                                                 </div>
                                                             ) : (
                                                                 <div className="w-40 h-24 rounded-xl bg-gray-50/50 border border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-300">
                                                                     <PlayIcon className="w-6 h-6 opacity-20 mb-1" />
-                                                                    <span className="text-[9px] font-bold opacity-50">No Video</span>
+                                                                    <span className="text-[9px] font-bold opacity-50">No Media</span>
                                                                 </div>
                                                             )}
                                                         </td>
