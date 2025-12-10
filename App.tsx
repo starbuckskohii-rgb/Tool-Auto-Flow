@@ -1,6 +1,3 @@
-
-
-
 import React, {
   useState,
   useCallback,
@@ -19,6 +16,7 @@ import {
     LayoutDashboardIcon, FileTextIcon
 } from './components/Icons';
 import Tracker from './components/Tracker';
+import { SnowEffect } from './components/SnowEffect';
 
 const isElectron = navigator.userAgent.toLowerCase().includes('electron');
 const ipcRenderer = isElectron && (window as any).require ? (window as any).require('electron').ipcRenderer : null;
@@ -42,9 +40,11 @@ const Activation: React.FC<ActivationProps> = ({ machineId, onActivate }) => {
     setIsActivating(false);
   };
   return (
-    <div className="text-gray-800 min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-red-50 to-green-50">
-      <div className="glass-card rounded-2xl p-8 shadow-2xl max-w-md w-full border-t-4 border-red-500">
-        <h1 className="text-2xl font-bold mb-4 text-center text-red-700">🎄 Kích hoạt ứng dụng</h1>
+    <div className="text-gray-800 min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-red-50 to-green-50 relative overflow-hidden">
+      <SnowEffect />
+      <div className="glass-card rounded-2xl p-8 shadow-2xl max-w-md w-full border-t-4 border-red-500 relative z-10">
+        <div className="absolute -top-10 -right-8 text-6xl animate-bounce" style={{ animationDuration: '3s' }}>🎅</div>
+        <h1 className="text-4xl font-bold mb-4 text-center text-red-700 font-christmas">🎄 Kích hoạt ứng dụng</h1>
         <p className="mb-4 text-sm text-gray-600">Mã máy: <code className="bg-gray-200 p-1 rounded select-all text-green-700 font-bold">{machineId}</code></p>
         <form onSubmit={handleSubmit} className="space-y-4">
             <textarea value={key} onChange={e => setKey(e.target.value)} rows={3} style={{color: '#ffffff'}} className="w-full p-3 border border-gray-600 rounded-lg bg-gray-800 text-white placeholder-gray-400 focus:ring-2 focus:ring-red-500" placeholder="Nhập mã kích hoạt..." required />
@@ -67,9 +67,11 @@ const ApiKeyManagerScreen: React.FC<ApiKeyManagerProps> = ({ apiKeys, onKeySelec
     const [val, setVal] = useState('');
     const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); onKeyAdd({ id: crypto.randomUUID(), name, value: val }); };
     return (
-        <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
-            <div className="glass-card p-8 rounded-2xl max-w-2xl w-full border border-green-100 shadow-xl">
-                <h1 className="text-2xl font-bold mb-6 text-center text-green-800">Quản lý API Keys 🔑</h1>
+        <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50 relative">
+            <SnowEffect />
+            <div className="glass-card p-8 rounded-2xl max-w-2xl w-full border border-green-100 shadow-xl relative z-10">
+                <div className="absolute -top-6 -left-6 text-5xl rotate-12">🎁</div>
+                <h1 className="text-3xl font-bold mb-6 text-center text-green-800 font-christmas">Quản lý API Keys 🔑</h1>
                 <div className="space-y-2 mb-6 max-h-60 overflow-y-auto custom-scrollbar">
                     {apiKeys.map(k => (
                         <div key={k.id} className="flex justify-between items-center p-3 bg-white border border-gray-100 rounded-lg shadow-sm hover:shadow-md transition">
@@ -597,6 +599,7 @@ const App: React.FC = () => {
 
     return (
         <div className="min-h-screen relative">
+            <SnowEffect />
             {/* Update Available Modal - Showing Release Notes */}
             {updateAvailableModal && (
                 <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
@@ -661,12 +664,28 @@ const App: React.FC = () => {
             )}
 
              {/* Header - Christmas Style */}
-             <header className="bg-white/90 backdrop-blur-md border-b-2 border-red-100 sticky top-0 z-50 shadow-sm">
-                 <div className="mx-auto px-4 sm:px-6 lg:px-8 max-w-[98%] w-full">
+             <header className="bg-white/90 backdrop-blur-md border-b-2 border-red-100 sticky top-0 z-50 shadow-sm relative overflow-hidden">
+                 {/* Flying Santa Animation */}
+                 <div className="absolute top-1 left-[-10%] text-4xl animate-fly-santa pointer-events-none opacity-80" style={{ animationDuration: '20s' }}>
+                    🦌🦌🎅🛷
+                    <style>{`
+                        @keyframes fly-santa {
+                            0% { transform: translateX(-10vw) translateY(0); }
+                            25% { transform: translateX(30vw) translateY(5px); }
+                            50% { transform: translateX(60vw) translateY(-5px); }
+                            100% { transform: translateX(110vw) translateY(0); }
+                        }
+                        .animate-fly-santa {
+                            animation: fly-santa linear infinite;
+                        }
+                    `}</style>
+                 </div>
+                 
+                 <div className="mx-auto px-4 sm:px-6 lg:px-8 max-w-[98%] w-full relative z-10">
                      <div className="flex justify-between h-16 items-center">
                          <div className="flex items-center gap-8">
-                             <h1 className="text-2xl font-extrabold text-red-700 tracking-tight flex items-center gap-2">
-                                 <span>🎄</span> Trọng - Tool Auto Flow
+                             <h1 className="text-3xl font-christmas font-bold text-red-700 tracking-tight flex items-center gap-2 drop-shadow-sm">
+                                 <span>🎅</span> Trọng - Tool Auto Flow
                              </h1>
                              <div className="hidden md:flex bg-gray-100/80 p-1 rounded-xl border border-gray-200 shadow-inner">
                                  <button onClick={() => setActiveTab('tracker')} className={`px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 flex items-center gap-2 ${activeTab === 'tracker' ? 'bg-green-600 text-white shadow-md' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'}`}>
@@ -691,7 +710,7 @@ const App: React.FC = () => {
                  </div>
              </header>
 
-             <main className={`mx-auto p-4 sm:p-6 lg:p-8 ${activeTab === 'tracker' ? 'max-w-[98%] w-full' : 'max-w-6xl'}`}>
+             <main className={`mx-auto p-4 sm:p-6 lg:p-8 ${activeTab === 'tracker' ? 'max-w-[98%] w-full' : 'max-w-6xl'} relative z-10`}>
                 {activeTab === 'generator' && (
                     <div className="space-y-6">
                         
@@ -751,12 +770,17 @@ const App: React.FC = () => {
                             <div className="absolute -top-3 -right-12 bg-red-600 text-white text-[10px] font-bold px-10 py-1 rotate-45 shadow-md z-10 hidden md:block border-b border-white/20">
                                 MERRY XMAS
                             </div>
+                            
+                            {/* Decorative Santa */}
+                            <div className="absolute top-2 right-12 z-0 hidden md:block opacity-20 pointer-events-none transform rotate-12">
+                                <span className="text-8xl">🎅</span>
+                            </div>
 
-                            <div className="p-6">
+                            <div className="p-6 relative z-10">
                                 <div className="flex justify-between items-center mb-6 cursor-pointer select-none" onClick={() => setIsConfigCollapsed(!isConfigCollapsed)}>
                                     <div className="flex items-center gap-2">
                                         <div className="w-1 h-6 bg-red-500 rounded-full"></div>
-                                        <h3 className="text-lg font-bold text-red-800">CẤU HÌNH KỊCH BẢN</h3>
+                                        <h3 className="text-lg font-bold text-red-800 font-christmas tracking-wider text-xl">CẤU HÌNH KỊCH BẢN</h3>
                                     </div>
                                     <div className={`p-2 rounded-full bg-red-50 hover:bg-red-100 transition-transform duration-300 ${isConfigCollapsed ? 'rotate-180' : ''}`}>
                                         <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7"></path></svg>
