@@ -588,6 +588,7 @@ const Tracker: React.FC = () => {
                                 <table className="w-full text-sm text-left">
                                     <thead className="text-[10px] text-gray-400 uppercase bg-white sticky top-0 shadow-sm z-10">
                                         <tr>
+                                            <th className="px-6 py-3 font-extrabold tracking-widest w-12 text-center">STT</th>
                                             <th className="px-6 py-3 font-extrabold tracking-widest w-24">Thời gian</th>
                                             <th className="px-6 py-3 font-extrabold tracking-widest w-24">Job ID</th>
                                             <th className="px-6 py-3 font-extrabold tracking-widest">File</th>
@@ -595,8 +596,9 @@ const Tracker: React.FC = () => {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-50">
-                                        {activityLogs.map(log => (
+                                        {activityLogs.map((log, index) => (
                                             <tr key={log.uniqueId} className="hover:bg-green-50 transition">
+                                                <td className="px-6 py-3 font-mono text-xs text-gray-400 text-center">{index + 1}</td>
                                                 <td className="px-6 py-3 font-mono text-xs text-gray-400">{log.time}</td>
                                                 <td className="px-6 py-3 font-bold text-green-600">{log.jobId}</td>
                                                 <td className="px-6 py-3 text-gray-600 truncate max-w-[200px]" title={log.fileName}>{log.fileName}</td>
