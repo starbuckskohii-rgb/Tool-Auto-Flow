@@ -702,6 +702,58 @@ ipcMain.handle('open-file-dialog', async () => {
     }
 });
 
+ipcMain.handle('load-tracked-files', async () => {
+    const config = readConfig();
+    const paths = config.trackedFilePaths || [];
+    const files = [];
+    
+    for (const p of paths) {
+        try {
+            if (fs.existsSync(p)) {
+                files.push({
+                    path: p,
+                    name: path.basename(p),
+                    content: fs.readFileSync(p)
+                });
+            }
+        } catch (e) {
+            console.error(`Failed to load tracked file: ${p}`, e);
+        }
+    }
+    return { success: true, files };
+});
+
+ipcMain.handle('scan-folder-for-excels', async () => {
+    const win = BrowserWindow.getFocusedWindow();
+    const result = await dialog.showOpenDialog(win, {
+        properties: ['openDirectory']
+    });
+
+    if (result.canceled || result.filePaths.length === 0) {
+        return { success: false, error: 'User canceled' };
+    }
+
+    const dirPath = result.filePaths[0];
+    try {
+        // Read directory
+        const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+        const files = entries
+            .filter(dirent => dirent.isFile() && dirent.name.toLowerCase().endsWith('.xlsx') && !dirent.name.startsWith('~$'))
+            .map(dirent => {
+                const fullPath = path.join(dirPath, dirent.name);
+                return {
+                    path: fullPath,
+                    name: dirent.name,
+                    content: fs.readFileSync(fullPath)
+                };
+            });
+            
+        return { success: true, files };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+
 ipcMain.on('start-watching-file', (event, filePath) => {
     if (fileWatchers.has(filePath)) return;
 

@@ -134,6 +134,8 @@ const Tracker: React.FC = () => {
                      setFiles(loadedFiles);
                      if (loadedFiles.length > 0) setActiveFileIndex(0);
                 }
+            } catch (err) {
+                console.error("Failed to load persisted files:", err);
             } finally {
                 setLoading(false);
             }
@@ -248,31 +250,37 @@ const Tracker: React.FC = () => {
     const handleScanFolder = async () => {
         if (!ipcRenderer) return;
         setLoading(true);
-        const result = await ipcRenderer.invoke('scan-folder-for-excels');
-        setLoading(false);
-
-        if (result.success && result.files) {
-            const newFiles: TrackedFile[] = [];
-            let addedCount = 0;
-            for (const f of result.files) {
-                if (files.some(existing => existing.path === f.path)) continue;
-                const rawJobs = parseExcel(f.content);
-                const videoResult = await ipcRenderer.invoke('find-videos-for-jobs', { jobs: rawJobs, excelFilePath: f.path });
-                newFiles.push({
-                    name: f.name,
-                    path: f.path,
-                    jobs: videoResult.success ? videoResult.jobs : rawJobs
-                });
-                ipcRenderer.send('start-watching-file', f.path);
-                addedCount++;
+        try {
+            const result = await ipcRenderer.invoke('scan-folder-for-excels');
+            
+            if (result.success && result.files) {
+                const newFiles: TrackedFile[] = [];
+                let addedCount = 0;
+                for (const f of result.files) {
+                    if (files.some(existing => existing.path === f.path)) continue;
+                    const rawJobs = parseExcel(f.content);
+                    const videoResult = await ipcRenderer.invoke('find-videos-for-jobs', { jobs: rawJobs, excelFilePath: f.path });
+                    newFiles.push({
+                        name: f.name,
+                        path: f.path,
+                        jobs: videoResult.success ? videoResult.jobs : rawJobs
+                    });
+                    ipcRenderer.send('start-watching-file', f.path);
+                    addedCount++;
+                }
+                if (newFiles.length > 0) {
+                    setFiles(prev => [...prev, ...newFiles]);
+                    if (files.length === 0) setActiveFileIndex(0);
+                    alert(`Đã thêm ${addedCount} file mới vào danh sách theo dõi.`);
+                } else {
+                    alert('Không tìm thấy file mới nào trong thư mục này.');
+                }
             }
-            if (newFiles.length > 0) {
-                setFiles(prev => [...prev, ...newFiles]);
-                if (files.length === 0) setActiveFileIndex(0);
-                alert(`Đã thêm ${addedCount} file mới vào danh sách theo dõi.`);
-            } else {
-                alert('Không tìm thấy file mới nào trong thư mục này.');
-            }
+        } catch (error) {
+             console.error(error);
+             alert('Lỗi quét thư mục.');
+        } finally {
+            setLoading(false);
         }
     };
 
