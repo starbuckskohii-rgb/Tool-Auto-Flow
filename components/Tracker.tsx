@@ -11,7 +11,6 @@ import {
   CogIcon,
   SearchIcon,
   LinkIcon,
-  UploadIcon,
   ChevronUpIcon,
   ChevronDownIcon,
   MaximizeIcon,
