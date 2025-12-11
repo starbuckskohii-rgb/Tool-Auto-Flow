@@ -40,16 +40,16 @@ const Activation: React.FC<ActivationProps> = ({ machineId, onActivate }) => {
     setIsActivating(false);
   };
   return (
-    <div className="text-gray-800 min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-red-50 to-green-50 relative overflow-hidden">
+    <div className="text-gray-800 min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-red-100 to-red-50 relative overflow-hidden">
       <SnowEffect />
-      <div className="glass-card rounded-2xl p-8 shadow-2xl max-w-md w-full border-t-4 border-red-500 relative z-10">
+      <div className="glass-card rounded-2xl p-8 shadow-2xl max-w-md w-full border-t-4 border-red-600 relative z-10">
         <div className="absolute -top-10 -right-8 text-6xl animate-bounce" style={{ animationDuration: '3s' }}>🎅</div>
-        <h1 className="text-4xl font-bold mb-4 text-center text-red-700 font-christmas">🎄 Kích hoạt ứng dụng</h1>
-        <p className="mb-4 text-sm text-gray-600">Mã máy: <code className="bg-gray-200 p-1 rounded select-all text-green-700 font-bold">{machineId}</code></p>
+        <h1 className="text-4xl font-bold mb-4 text-center text-red-800 font-christmas">🎄 Kích hoạt ứng dụng</h1>
+        <p className="mb-4 text-sm text-gray-700">Mã máy: <code className="bg-red-100 p-1 rounded select-all text-red-800 font-bold border border-red-200">{machineId}</code></p>
         <form onSubmit={handleSubmit} className="space-y-4">
-            <textarea value={key} onChange={e => setKey(e.target.value)} rows={3} style={{color: '#ffffff'}} className="w-full p-3 border border-gray-600 rounded-lg bg-gray-800 text-white placeholder-gray-400 focus:ring-2 focus:ring-red-500" placeholder="Nhập mã kích hoạt..." required />
+            <textarea value={key} onChange={e => setKey(e.target.value)} rows={3} style={{color: '#ffffff'}} className="w-full p-3 border border-red-200 rounded-lg bg-red-950 text-white placeholder-red-300 focus:ring-2 focus:ring-red-500" placeholder="Nhập mã kích hoạt..." required />
             <button type="submit" disabled={isActivating} className="w-full btn-primary py-3 rounded-xl font-bold shadow-lg">{isActivating ? <LoaderIcon /> : 'Kích hoạt ngay'}</button>
-            {error && <p className="text-red-500 text-sm font-bold bg-red-50 p-2 rounded">{error}</p>}
+            {error && <p className="text-red-600 text-sm font-bold bg-red-50 p-2 rounded border border-red-200">{error}</p>}
         </form>
       </div>
     </div>
@@ -67,26 +67,26 @@ const ApiKeyManagerScreen: React.FC<ApiKeyManagerProps> = ({ apiKeys, onKeySelec
     const [val, setVal] = useState('');
     const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); onKeyAdd({ id: crypto.randomUUID(), name, value: val }); };
     return (
-        <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50 relative">
+        <div className="min-h-screen flex items-center justify-center p-4 bg-red-50 relative">
             <SnowEffect />
-            <div className="glass-card p-8 rounded-2xl max-w-2xl w-full border border-green-100 shadow-xl relative z-10">
+            <div className="glass-card p-8 rounded-2xl max-w-2xl w-full border border-red-100 shadow-xl relative z-10">
                 <div className="absolute -top-6 -left-6 text-5xl rotate-12">🎁</div>
-                <h1 className="text-3xl font-bold mb-6 text-center text-green-800 font-christmas">Quản lý API Keys 🔑</h1>
+                <h1 className="text-3xl font-bold mb-6 text-center text-red-800 font-christmas">Quản lý API Keys 🔑</h1>
                 <div className="space-y-2 mb-6 max-h-60 overflow-y-auto custom-scrollbar">
                     {apiKeys.map(k => (
-                        <div key={k.id} className="flex justify-between items-center p-3 bg-white border border-gray-100 rounded-lg shadow-sm hover:shadow-md transition">
-                            <div><div className="font-bold text-gray-700">{k.name}</div><div className="text-xs text-gray-400 truncate w-40">{k.value.substring(0, 10)}...</div></div>
+                        <div key={k.id} className="flex justify-between items-center p-3 bg-white border border-red-100 rounded-lg shadow-sm hover:shadow-md transition">
+                            <div><div className="font-bold text-gray-800">{k.name}</div><div className="text-xs text-red-400 truncate w-40">{k.value.substring(0, 10)}...</div></div>
                             <div className="flex gap-2">
-                                <button onClick={() => onKeySelect(k)} className="px-3 py-1 bg-green-600 text-white rounded-lg text-sm font-bold hover:bg-green-700">Chọn</button>
-                                <button onClick={() => onKeyDelete(k.id)} className="text-red-400 hover:text-red-600"><TrashIcon className="w-5 h-5"/></button>
+                                <button onClick={() => onKeySelect(k)} className="px-3 py-1 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700">Chọn</button>
+                                <button onClick={() => onKeyDelete(k.id)} className="text-gray-400 hover:text-red-600"><TrashIcon className="w-5 h-5"/></button>
                             </div>
                         </div>
                     ))}
                 </div>
-                <form onSubmit={handleSubmit} className="space-y-3 pt-4 border-t border-gray-200">
-                    <input value={name} onChange={e => setName(e.target.value)} style={{color: '#ffffff'}} placeholder="Tên Key (VD: Key Giáng Sinh)" className="w-full p-2 border border-gray-600 rounded bg-gray-800 text-white placeholder-gray-400" required />
-                    <input value={val} onChange={e => setVal(e.target.value)} style={{color: '#ffffff'}} placeholder="API Key Value" type="password" className="w-full p-2 border border-gray-600 rounded bg-gray-800 text-white placeholder-gray-400" required />
-                    <button className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-bold shadow-md transition">Thêm Key Mới</button>
+                <form onSubmit={handleSubmit} className="space-y-3 pt-4 border-t border-red-100">
+                    <input value={name} onChange={e => setName(e.target.value)} style={{color: '#ffffff'}} placeholder="Tên Key (VD: Key Giáng Sinh)" className="w-full p-2 border border-red-200 rounded bg-red-950 text-white placeholder-red-300" required />
+                    <input value={val} onChange={e => setVal(e.target.value)} style={{color: '#ffffff'}} placeholder="API Key Value" type="password" className="w-full p-2 border border-red-200 rounded bg-red-950 text-white placeholder-red-300" required />
+                    <button className="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg font-bold shadow-md transition">Thêm Key Mới</button>
                 </form>
             </div>
         </div>
@@ -593,7 +593,7 @@ const App: React.FC = () => {
         }
     };
 
-    if (!configLoaded) return <div className="min-h-screen flex items-center justify-center text-gray-500 bg-blue-50"><LoaderIcon /> <span className="ml-2">Đang tải dữ liệu Giáng Sinh...</span></div>;
+    if (!configLoaded) return <div className="min-h-screen flex items-center justify-center text-red-500 bg-red-50"><LoaderIcon /> <span className="ml-2 font-bold">Đang tải dữ liệu Giáng Sinh...</span></div>;
     if (!isActivated) return <Activation machineId={machineId} onActivate={async (key) => { saveConfig({ licenseKey: key }); setIsActivated(true); return true; }} />;
     if (!activeApiKey) return <ApiKeyManagerScreen apiKeys={apiKeys} onKeyAdd={(k) => { const newKeys=[...apiKeys, k]; setApiKeys(newKeys); saveConfig({ apiKeysEncrypted: encrypt(JSON.stringify(newKeys)) }); }} onKeyDelete={(id) => { const newKeys=apiKeys.filter(k=>k.id!==id); setApiKeys(newKeys); saveConfig({ apiKeysEncrypted: encrypt(JSON.stringify(newKeys)) }); }} onKeySelect={(k) => { setActiveApiKey(k); saveConfig({ activeApiKeyId: k.id }); }} />;
 
@@ -603,9 +603,9 @@ const App: React.FC = () => {
             {/* Update Available Modal - Showing Release Notes */}
             {updateAvailableModal && (
                 <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 text-center animate-bounce-in border-t-4 border-green-500 relative flex flex-col max-h-[90vh]">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 text-center animate-bounce-in border-t-4 border-red-500 relative flex flex-col max-h-[90vh]">
                         <h3 className="text-xl font-extrabold text-gray-800 mb-2 flex items-center justify-center gap-2">
-                            🎁 Có bản cập nhật mới! <span className="text-green-600 bg-green-50 px-2 py-0.5 rounded text-sm">v{updateAvailableModal.version}</span>
+                            🎁 Có bản cập nhật mới! <span className="text-red-600 bg-red-50 px-2 py-0.5 rounded text-sm">v{updateAvailableModal.version}</span>
                         </h3>
                         
                         {/* Release Notes Area */}
@@ -626,7 +626,7 @@ const App: React.FC = () => {
                         </p>
                         <div className="flex gap-3 justify-center shrink-0">
                             <button onClick={handleUpdateLater} className="px-4 py-2 rounded-lg text-gray-500 font-bold hover:bg-gray-100 transition">Để sau</button>
-                            <button onClick={handleUpdateNow} className="px-6 py-2 rounded-lg bg-green-600 text-white font-bold shadow-lg hover:bg-green-700 hover:-translate-y-1 transition flex items-center gap-2">
+                            <button onClick={handleUpdateNow} className="px-6 py-2 rounded-lg bg-red-600 text-white font-bold shadow-lg hover:bg-red-700 hover:-translate-y-1 transition flex items-center gap-2">
                                 <DownloadIcon className="w-4 h-4"/> Cập nhật ngay
                             </button>
                         </div>
@@ -645,13 +645,13 @@ const App: React.FC = () => {
 
             {showProgressModal && (
                 <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-8 text-center animate-fade-in-up border-t-4 border-green-500">
-                         <div className="mb-4 text-green-600 flex justify-center"><LoaderIcon /></div>
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-8 text-center animate-fade-in-up border-t-4 border-red-500">
+                         <div className="mb-4 text-red-600 flex justify-center"><LoaderIcon /></div>
                         <h3 className="text-xl font-bold text-gray-900 mb-2">Đang tải cập nhật Giáng Sinh...</h3>
                         <div className="w-full bg-gray-200 rounded-full h-4 mb-2 overflow-hidden">
-                            <div className="bg-green-600 h-4 rounded-full transition-all duration-300 ease-out" style={{ width: `${downloadProgress}%` }}></div>
+                            <div className="bg-red-600 h-4 rounded-full transition-all duration-300 ease-out" style={{ width: `${downloadProgress}%` }}></div>
                         </div>
-                        <p className="font-bold text-green-700">{downloadProgress}%</p>
+                        <p className="font-bold text-red-700">{downloadProgress}%</p>
                     </div>
                 </div>
             )}
@@ -663,8 +663,8 @@ const App: React.FC = () => {
                 </div>
             )}
 
-             {/* Header - Christmas Style */}
-             <header className="bg-white/90 backdrop-blur-md border-b-2 border-red-100 sticky top-0 z-50 shadow-sm relative overflow-hidden">
+             {/* Header - Christmas Style (Redder) */}
+             <header className="bg-white/95 backdrop-blur-md border-b-2 border-red-200 sticky top-0 z-50 shadow-sm relative overflow-hidden">
                  {/* Flying Santa Animation */}
                  <div className="absolute top-1 left-[-10%] text-4xl animate-fly-santa pointer-events-none opacity-80" style={{ animationDuration: '20s' }}>
                     🦌🦌🎅🛷
@@ -684,26 +684,26 @@ const App: React.FC = () => {
                  <div className="mx-auto px-4 sm:px-6 lg:px-8 max-w-[98%] w-full relative z-10">
                      <div className="flex justify-between h-16 items-center">
                          <div className="flex items-center gap-8">
-                             <h1 className="text-3xl font-christmas font-bold text-red-700 tracking-tight flex items-center gap-2 drop-shadow-sm">
+                             <h1 className="text-3xl font-christmas font-bold text-red-800 tracking-tight flex items-center gap-2 drop-shadow-sm">
                                  <span>🎅</span> Trọng - Tool Auto Flow
                              </h1>
-                             <div className="hidden md:flex bg-gray-100/80 p-1 rounded-xl border border-gray-200 shadow-inner">
-                                 <button onClick={() => setActiveTab('tracker')} className={`px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 flex items-center gap-2 ${activeTab === 'tracker' ? 'bg-green-600 text-white shadow-md' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'}`}>
+                             <div className="hidden md:flex bg-red-50 p-1 rounded-xl border border-red-100 shadow-inner">
+                                 <button onClick={() => setActiveTab('tracker')} className={`px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 flex items-center gap-2 ${activeTab === 'tracker' ? 'bg-red-700 text-white shadow-md' : 'text-gray-500 hover:text-red-700 hover:bg-red-100'}`}>
                                     <LayoutDashboardIcon className="w-4 h-4" /> Bảng Điều Khiển
                                  </button>
-                                 <button onClick={() => setActiveTab('generator')} className={`px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 flex items-center gap-2 ${activeTab === 'generator' ? 'bg-red-600 text-white shadow-md' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'}`}>
+                                 <button onClick={() => setActiveTab('generator')} className={`px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 flex items-center gap-2 ${activeTab === 'generator' ? 'bg-amber-600 text-white shadow-md' : 'text-gray-500 hover:text-amber-700 hover:bg-amber-100'}`}>
                                     <FileTextIcon className="w-4 h-4" /> Tạo Kịch Bản
                                  </button>
-                                 <button onClick={() => setActiveTab('image-generator')} className={`px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 flex items-center gap-2 ${activeTab === 'image-generator' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'}`}>
+                                 <button onClick={() => setActiveTab('image-generator')} className={`px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 flex items-center gap-2 ${activeTab === 'image-generator' ? 'bg-green-700 text-white shadow-md' : 'text-gray-500 hover:text-green-700 hover:bg-green-100'}`}>
                                     <ImageIcon className="w-4 h-4" /> Tạo Ảnh (IMG)
                                  </button>
                              </div>
                          </div>
                          <div className="flex items-center gap-3">
-                             <button onClick={handleCheckUpdate} className="text-xs text-gray-500 hover:text-green-600 flex items-center gap-1 bg-white px-2 py-1 rounded border border-gray-200 shadow-sm hover:shadow">
+                             <button onClick={handleCheckUpdate} className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1 bg-white px-2 py-1 rounded border border-red-100 shadow-sm hover:shadow">
                                  <InfoIcon className={`w-3 h-3 ${updateStatus === 'checking' ? 'animate-spin' : ''}`} /> v{appVersion}
                              </button>
-                             {activeApiKey && <span className="text-xs bg-green-100 text-green-800 border border-green-200 px-2 py-1 rounded-lg font-bold flex items-center gap-1 shadow-sm"><KeyIcon className="w-3 h-3"/> {activeApiKey.name}</span>}
+                             {activeApiKey && <span className="text-xs bg-red-100 text-red-800 border border-red-200 px-2 py-1 rounded-lg font-bold flex items-center gap-1 shadow-sm"><KeyIcon className="w-3 h-3"/> {activeApiKey.name}</span>}
                              <button onClick={() => setActiveApiKey(null)} className="text-gray-400 hover:text-red-500"><CogIcon className="w-5 h-5"/></button>
                          </div>
                      </div>
@@ -715,7 +715,7 @@ const App: React.FC = () => {
                     <div className="space-y-6">
                         
                         {/* Tab Navigation - Festive */}
-                        <div className="bg-white p-2 rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
+                        <div className="bg-white p-2 rounded-xl shadow-sm border border-red-100 overflow-x-auto">
                             <div className="flex flex-nowrap md:flex-wrap space-x-1 min-w-max">
                                 {(['jesus', 'trending', 'seasonal', 'looping', 'cafe', 'starbucks', 'concert', 'stage'] as GeneratorTab[]).map(tab => {
                                     const isActive = genTab === tab;
@@ -724,7 +724,7 @@ const App: React.FC = () => {
                                         <button 
                                             key={tab} 
                                             onClick={() => { setGenTab(tab); setFeedback(null); }} 
-                                            className={`px-4 py-2.5 rounded-lg text-sm font-bold transition-all whitespace-nowrap flex items-center gap-2 border ${isActive ? 'bg-red-50 text-red-600 border-red-200 shadow-sm' : 'bg-transparent text-gray-500 border-transparent hover:bg-red-50 hover:text-red-500'}`}
+                                            className={`px-4 py-2.5 rounded-lg text-sm font-bold transition-all whitespace-nowrap flex items-center gap-2 border ${isActive ? 'bg-red-50 text-red-700 border-red-200 shadow-sm' : 'bg-transparent text-gray-500 border-transparent hover:bg-red-50 hover:text-red-600'}`}
                                         >
                                             {getTabIcon(tab)}
                                             <span>{labels[tab]}</span>
@@ -736,38 +736,38 @@ const App: React.FC = () => {
 
                         {/* Character Creation Area */}
                         {(genTab === 'concert' || genTab === 'stage') && (
-                            <div className="glass-card p-6 animate-fade-in-up bg-white border-t-4 border-purple-500">
-                                <div className="flex items-center gap-2 mb-4 text-purple-700 font-bold uppercase text-xs tracking-wider">
+                            <div className="glass-card p-6 animate-fade-in-up bg-white border-t-4 border-amber-500">
+                                <div className="flex items-center gap-2 mb-4 text-amber-700 font-bold uppercase text-xs tracking-wider">
                                     <UserIcon className="w-4 h-4"/> Thiết Lập Nhân Vật (Bắt buộc)
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-gray-600">1. Mô tả nhân vật chính:</label>
-                                        <textarea value={inputs.characterDesc} onChange={e => handleInputChange('characterDesc', e.target.value)} className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-purple-500 outline-none h-32 resize-none shadow-sm" placeholder="Ví dụ: một người phụ nữ trẻ, tóc nâu dài xoăn nhẹ, mặc váy trắng..."></textarea>
+                                        <textarea value={inputs.characterDesc} onChange={e => handleInputChange('characterDesc', e.target.value)} className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-amber-500 outline-none h-32 resize-none shadow-sm" placeholder="Ví dụ: một người phụ nữ trẻ, tóc nâu dài xoăn nhẹ, mặc váy trắng..."></textarea>
                                     </div>
                                     <div className="space-y-2">
                                         <div className="text-center text-xs text-gray-400 font-bold uppercase my-1">-- HOẶC --</div>
                                         <label className="text-xs font-bold text-gray-600">2. Tải ảnh lên để AI phân tích:</label>
-                                        <div className="file-input-wrapper w-full bg-white text-gray-500 font-medium h-24 rounded-xl border-2 border-dashed border-gray-300 hover:border-purple-500 hover:bg-purple-50 text-center transition cursor-pointer flex flex-col items-center justify-center text-xs relative group">
+                                        <div className="file-input-wrapper w-full bg-white text-gray-500 font-medium h-24 rounded-xl border-2 border-dashed border-gray-300 hover:border-amber-500 hover:bg-amber-50 text-center transition cursor-pointer flex flex-col items-center justify-center text-xs relative group">
                                             {inputs.characterImage ? (
-                                                <span className="text-purple-600 font-bold flex items-center gap-1"><span className="text-lg">✓</span> Đã chọn ảnh</span>
+                                                <span className="text-amber-600 font-bold flex items-center gap-1"><span className="text-lg">✓</span> Đã chọn ảnh</span>
                                             ) : (
                                                 <span className="flex items-center gap-2"><UploadIcon className="w-4 h-4"/> Chọn hoặc Dán ảnh (Ctrl+V)</span>
                                             )}
                                             <input type="file" accept="image/*" onChange={handleImageUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
                                         </div>
-                                        {inputs.characterImage && <button onClick={analyzeCharacterImage} className="text-xs text-purple-600 font-bold w-full text-center hover:underline bg-purple-50 py-1 rounded">✨ Phân tích ảnh ngay</button>}
+                                        {inputs.characterImage && <button onClick={analyzeCharacterImage} className="text-xs text-amber-600 font-bold w-full text-center hover:underline bg-amber-50 py-1 rounded">✨ Phân tích ảnh ngay</button>}
                                     </div>
                                 </div>
-                                {characterAnalysis && <div className="mt-4 p-3 bg-purple-50 text-purple-800 rounded-lg text-xs font-mono border border-purple-100">{characterAnalysis}</div>}
+                                {characterAnalysis && <div className="mt-4 p-3 bg-amber-50 text-amber-800 rounded-lg text-xs font-mono border border-amber-100">{characterAnalysis}</div>}
                             </div>
                         )}
 
                         {/* Collapsible Config Card - Christmas Style */}
-                        <div className="glass-card bg-white transition-all duration-300 relative overflow-hidden shadow-sm border border-red-100 rounded-2xl">
+                        <div className="glass-card bg-white transition-all duration-300 relative overflow-hidden shadow-sm border border-red-200 rounded-2xl">
                             
                             {/* Decorative Corner Ribbon */}
-                            <div className="absolute -top-3 -right-12 bg-red-600 text-white text-[10px] font-bold px-10 py-1 rotate-45 shadow-md z-10 hidden md:block border-b border-white/20">
+                            <div className="absolute -top-3 -right-12 bg-red-700 text-white text-[10px] font-bold px-10 py-1 rotate-45 shadow-md z-10 hidden md:block border-b border-white/20">
                                 MERRY XMAS
                             </div>
                             
@@ -779,11 +779,11 @@ const App: React.FC = () => {
                             <div className="p-6 relative z-10">
                                 <div className="flex justify-between items-center mb-6 cursor-pointer select-none" onClick={() => setIsConfigCollapsed(!isConfigCollapsed)}>
                                     <div className="flex items-center gap-2">
-                                        <div className="w-1 h-6 bg-red-500 rounded-full"></div>
-                                        <h3 className="text-lg font-bold text-red-800 font-christmas tracking-wider text-xl">CẤU HÌNH KỊCH BẢN</h3>
+                                        <div className="w-1 h-6 bg-red-600 rounded-full"></div>
+                                        <h3 className="text-lg font-bold text-red-900 font-christmas tracking-wider text-xl">CẤU HÌNH KỊCH BẢN</h3>
                                     </div>
                                     <div className={`p-2 rounded-full bg-red-50 hover:bg-red-100 transition-transform duration-300 ${isConfigCollapsed ? 'rotate-180' : ''}`}>
-                                        <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7"></path></svg>
+                                        <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7"></path></svg>
                                     </div>
                                 </div>
 
@@ -793,10 +793,10 @@ const App: React.FC = () => {
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                         <div className="flex flex-col h-full">
                                             <div className="flex justify-between mb-2 items-center">
-                                                <label className="text-xs font-extrabold text-gray-600 uppercase flex items-center gap-1">
-                                                    <span className="text-red-500">🎁</span> 1. Ý tưởng cơ bản
+                                                <label className="text-xs font-extrabold text-gray-700 uppercase flex items-center gap-1">
+                                                    <span className="text-red-600">🎁</span> 1. Ý tưởng cơ bản
                                                 </label>
-                                                {genTab === 'trending' && <button onClick={() => handleInputChange('basicIdea', 'Top Catholic Trend: Mùa Chay')} className="text-[9px] bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full font-bold hover:bg-orange-200 transition">🔥 MV Theo Trend</button>}
+                                                {genTab === 'trending' && <button onClick={() => handleInputChange('basicIdea', 'Top Catholic Trend: Mùa Chay')} className="text-[9px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold hover:bg-amber-200 transition">🔥 MV Theo Trend</button>}
                                             </div>
                                             <textarea 
                                                 value={inputs.basicIdea} 
@@ -808,10 +808,10 @@ const App: React.FC = () => {
 
                                         <div className="flex flex-col h-full">
                                             <div className="flex justify-between mb-2 items-center">
-                                                <label className="text-xs font-extrabold text-gray-600 uppercase flex items-center gap-1">
-                                                    <span className="text-yellow-500">✨</span> 2. Bối cảnh & Không khí
+                                                <label className="text-xs font-extrabold text-gray-700 uppercase flex items-center gap-1">
+                                                    <span className="text-amber-500">✨</span> 2. Bối cảnh & Không khí
                                                 </label>
-                                                <button onClick={suggestScript} className="text-[9px] text-white font-bold bg-red-400 px-3 py-1 rounded-full hover:bg-red-500 transition shadow-sm flex items-center gap-1">
+                                                <button onClick={suggestScript} className="text-[9px] text-white font-bold bg-amber-500 px-3 py-1 rounded-full hover:bg-amber-600 transition shadow-sm flex items-center gap-1">
                                                     <SparklesIcon className="w-3 h-3"/> TỐI ƯU Ý TƯỞNG (AI)
                                                 </button>
                                             </div>
@@ -852,10 +852,10 @@ const App: React.FC = () => {
                                         <div className="lg:col-span-2">
                                             <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 block">Chế độ cảnh</label>
                                             <div className="flex bg-gray-200 p-1 rounded-lg">
-                                                <button onClick={() => handleInputChange('mode', 'character')} className={`flex-1 py-1.5 rounded-md text-xs font-bold transition flex items-center justify-center gap-1 ${inputs.mode === 'character' ? 'bg-white text-red-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                                                <button onClick={() => handleInputChange('mode', 'character')} className={`flex-1 py-1.5 rounded-md text-xs font-bold transition flex items-center justify-center gap-1 ${inputs.mode === 'character' ? 'bg-white text-red-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
                                                     <UserIcon className="w-3 h-3"/> Có Nhân Vật
                                                 </button>
-                                                <button onClick={() => handleInputChange('mode', 'landscape')} className={`flex-1 py-1.5 rounded-md text-xs font-bold transition flex items-center justify-center gap-1 ${inputs.mode === 'landscape' ? 'bg-white text-green-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                                                <button onClick={() => handleInputChange('mode', 'landscape')} className={`flex-1 py-1.5 rounded-md text-xs font-bold transition flex items-center justify-center gap-1 ${inputs.mode === 'landscape' ? 'bg-white text-green-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
                                                     <MountainIcon className="w-3 h-3"/> Chỉ Thiên Nhiên
                                                 </button>
                                             </div>
@@ -931,17 +931,17 @@ const App: React.FC = () => {
 
                                             <div className="flex justify-between items-center bg-white/60 p-2 rounded-lg border border-green-50 shadow-sm">
                                                 <span className="text-[10px] text-gray-500">Thời lượng 1 shot:</span>
-                                                <span className="text-sm font-black text-red-500">{shotDuration.toFixed(2)}s</span>
+                                                <span className="text-sm font-black text-red-600">{shotDuration.toFixed(2)}s</span>
                                                 <div className="text-center">
                                                     <div className="text-[9px] text-gray-400 font-bold uppercase">Tổng Prompts</div>
-                                                    <div className="text-xl font-black text-orange-500 leading-none">{totalPrompts}</div>
+                                                    <div className="text-xl font-black text-amber-600 leading-none">{totalPrompts}</div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
 
                                     {/* Generate Button */}
-                                    <button onClick={generatePrompts} disabled={isLoading} className="w-full bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white font-extrabold text-sm py-4 rounded-xl shadow-lg hover:shadow-xl transition-all transform active:scale-[0.99] flex justify-center items-center gap-2 border border-red-300">
+                                    <button onClick={generatePrompts} disabled={isLoading} className="w-full bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-700 hover:to-amber-700 text-white font-extrabold text-sm py-4 rounded-xl shadow-lg hover:shadow-xl transition-all transform active:scale-[0.99] flex justify-center items-center gap-2 border border-red-400">
                                         <span>TẠO {totalPrompts} PROMPTS NGAY 🎁</span>
                                     </button>
                                 </div>
@@ -983,7 +983,7 @@ const App: React.FC = () => {
                         {/* Floating Download Button */}
                         {generatedPrompts.length > 0 && (
                             <div className="fixed bottom-8 right-8 z-40 floating-enter">
-                                <button onClick={downloadExcel} className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-full shadow-2xl hover:shadow-green-500/30 hover:-translate-y-1 transition-all flex items-center gap-3 border-2 border-white/20 backdrop-blur-md">
+                                <button onClick={downloadExcel} className="bg-green-700 hover:bg-green-800 text-white font-bold py-3 px-6 rounded-full shadow-2xl hover:shadow-green-500/30 hover:-translate-y-1 transition-all flex items-center gap-3 border-2 border-white/20 backdrop-blur-md">
                                     <DownloadIcon className="w-5 h-5" />
                                     <span>Tải File Excel</span>
                                 </button>
@@ -994,9 +994,9 @@ const App: React.FC = () => {
                 
                 {activeTab === 'image-generator' && (
                     <div className="space-y-6">
-                         <div className="glass-card bg-white p-6 rounded-2xl shadow-sm border border-blue-100">
+                         <div className="glass-card bg-white p-6 rounded-2xl shadow-sm border border-red-100">
                             <div className="flex justify-between items-center mb-4">
-                                <h3 className="text-lg font-bold text-blue-800 flex items-center gap-2">
+                                <h3 className="text-lg font-bold text-red-800 flex items-center gap-2">
                                     <ImageIcon className="w-6 h-6"/> TẠO PROMPT HÌNH ẢNH (IMG)
                                 </h3>
                             </div>
@@ -1009,14 +1009,14 @@ const App: React.FC = () => {
                                     <textarea 
                                         value={imageInputRaw}
                                         onChange={e => setImageInputRaw(e.target.value)}
-                                        className="w-full h-64 p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 focus:ring-2 focus:ring-blue-200 focus:border-blue-400 outline-none transition shadow-sm font-mono" 
+                                        className="w-full h-64 p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 focus:ring-2 focus:ring-red-200 focus:border-red-400 outline-none transition shadow-sm font-mono" 
                                         placeholder={`Day 1: Mô tả hình ảnh...\n\nDay 2: Mô tả tiếp theo...`} 
                                     />
                                     <p className="text-[10px] text-gray-400 mt-2">* Hệ thống sẽ tự động lọc bỏ các tiền tố như "Day 1:", "Prompt 1:" để lấy nội dung chính.</p>
                                 </div>
                                 <button 
                                     onClick={processImageInput} 
-                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg transition-all"
+                                    className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl shadow-lg transition-all"
                                 >
                                     XỬ LÝ DỮ LIỆU
                                 </button>

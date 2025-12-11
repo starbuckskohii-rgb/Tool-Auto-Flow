@@ -17,7 +17,8 @@ import {
   MaximizeIcon,
   XCircleIcon,
   TableDeleteIcon,
-  FilterIcon
+  FilterIcon,
+  CopyIcon
 } from './Icons';
 
 const isElectron = navigator.userAgent.toLowerCase().includes('electron');
@@ -466,6 +467,66 @@ const Tracker: React.FC = () => {
         }
     };
 
+    const handleRemoveImage = async (jobId: string, slotIndex: number) => {
+        const activeFile = files[activeFileIndex];
+        if (!activeFile || !ipcRenderer || !activeFile.path) return;
+        if (!confirm('Bạn có chắc chắn muốn xóa ảnh này không?')) return;
+
+        setLoading(true);
+        try {
+            const colName = slotIndex === 1 ? 'IMAGE_PATH' : (slotIndex === 2 ? 'IMAGE_PATH_2' : 'IMAGE_PATH_3');
+            await ipcRenderer.invoke('update-job-fields', {
+                filePath: activeFile.path,
+                jobId: jobId,
+                updates: { [colName]: '' }
+            });
+            await handleRefresh();
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleApplyImageToAll = async (sourceJob: VideoJob, slotIndex: number) => {
+        const activeFile = files[activeFileIndex];
+        if (!activeFile || !ipcRenderer || !activeFile.path) return;
+
+        const imagePath = slotIndex === 1 ? sourceJob.imagePath : (slotIndex === 2 ? sourceJob.imagePath2 : sourceJob.imagePath3);
+        const typeVideo = sourceJob.typeVideo;
+        
+        if (!imagePath) return alert('Không có ảnh để áp dụng.');
+        if (!typeVideo) return alert('Vui lòng chọn loại Video (Type Video) cho job này trước.');
+
+        // Filter jobs with same type
+        const targetJobs = activeFile.jobs.filter(j => j.typeVideo === typeVideo && j.id !== sourceJob.id);
+        
+        if (targetJobs.length === 0) return alert('Không tìm thấy job nào khác cùng loại để áp dụng.');
+        
+        if (!confirm(`Bạn có chắc muốn áp dụng ảnh này cho ${targetJobs.length} job khác có type "${typeVideo}" không?`)) return;
+
+        setLoading(true);
+        try {
+            const colName = slotIndex === 1 ? 'IMAGE_PATH' : (slotIndex === 2 ? 'IMAGE_PATH_2' : 'IMAGE_PATH_3');
+            const jobUpdates = targetJobs.map(j => ({
+                jobId: j.id,
+                updates: { [colName]: imagePath }
+            }));
+
+            const result = await ipcRenderer.invoke('update-bulk-job-fields', {
+                filePath: activeFile.path,
+                jobUpdates
+            });
+
+            if (result.success) {
+                await handleRefresh();
+                alert('Đã áp dụng thành công!');
+            } else {
+                alert(`Lỗi: ${result.error}`);
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const activeFile = files[activeFileIndex];
         if (!activeFile || !ipcRenderer || !activeFile.path || !uploadContext) return;
@@ -526,8 +587,27 @@ const Tracker: React.FC = () => {
                 {hasImage ? (
                     <>
                         <img src={getFileUrl(imagePath)} className="w-full h-full object-cover" />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-                            <UploadIcon className="w-4 h-4 text-white" />
+                        {/* Overlay with Actions */}
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-2 transition z-10 p-1">
+                             <div className="flex gap-2">
+                                {/* Apply All Button */}
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); handleApplyImageToAll(job, slotIndex); }} 
+                                    className="p-1.5 bg-blue-600 rounded-full text-white hover:bg-blue-500 hover:scale-110 transition shadow-sm"
+                                    title="Áp dụng ảnh này cho tất cả job cùng loại"
+                                >
+                                    <CopyIcon className="w-3 h-3" />
+                                </button>
+                                {/* Delete Button */}
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); handleRemoveImage(job.id, slotIndex); }} 
+                                    className="p-1.5 bg-red-600 rounded-full text-white hover:bg-red-500 hover:scale-110 transition shadow-sm"
+                                    title="Xóa ảnh"
+                                >
+                                    <XCircleIcon className="w-3 h-3" />
+                                </button>
+                             </div>
+                             <span className="text-[8px] text-gray-200 font-bold mt-1">Change Image</span>
                         </div>
                     </>
                 ) : (
@@ -535,7 +615,7 @@ const Tracker: React.FC = () => {
                 )}
                 
                 {/* Slot Label */}
-                <div className="absolute bottom-0 right-0 bg-black/60 text-white text-[8px] px-1 rounded-tl">
+                <div className="absolute bottom-0 right-0 bg-black/60 text-white text-[8px] px-1 rounded-tl z-0">
                     {slotIndex}
                 </div>
             </div>
@@ -633,7 +713,7 @@ const Tracker: React.FC = () => {
             )}
 
             {/* Global Top Bar (Collapsible) */}
-            <div className={`transition-all duration-300 ease-in-out bg-white/80 backdrop-blur-md rounded-2xl p-2 mb-2 shadow-sm border border-green-100 relative overflow-hidden ${isStatsExpanded ? 'h-20 opacity-100' : 'h-0 opacity-0 mb-0 border-0 p-0'}`}>
+            <div className={`transition-all duration-300 ease-in-out bg-white/80 backdrop-blur-md rounded-2xl p-2 mb-2 shadow-sm border border-red-100 relative overflow-hidden ${isStatsExpanded ? 'h-20 opacity-100' : 'h-0 opacity-0 mb-0 border-0 p-0'}`}>
                  <div className="flex items-center h-full justify-between">
                      {/* Left Side: Stats Dashboard */}
                      <div className="flex items-center h-full">
@@ -768,8 +848,8 @@ const Tracker: React.FC = () => {
                 <div className="flex-1 flex flex-col gap-4 overflow-hidden">
                     {activeFile ? (
                         <>
-                            {/* Header */}
-                            <div className="bg-white/70 backdrop-blur-md p-1 rounded-2xl border border-white/60 shadow-sm flex flex-col gap-1">
+                            {/* Header - NARROWED WIDTH for STATUS BAR */}
+                            <div className="bg-white/70 backdrop-blur-md p-1 rounded-2xl border border-white/60 shadow-sm flex flex-col gap-1 max-w-[98%] mx-auto w-full">
                                 <div className="flex items-center p-3 gap-4">
                                     <div className="flex-1 min-w-0">
                                         <h2 className="text-lg font-extrabold text-gray-800 truncate" title={activeFile.name}>{activeFile.name}</h2>
@@ -778,7 +858,7 @@ const Tracker: React.FC = () => {
                                     <div className="flex gap-3">
                                         <div className="bg-red-50 px-4 py-2 rounded-xl border border-red-100 min-w-[100px]"><div className="text-[9px] font-bold text-red-400 uppercase tracking-wide mb-1">Tổng Job</div><div className="text-xl font-black text-red-600 leading-none">{fileTotal}</div></div>
                                         <div className="bg-green-50 px-4 py-2 rounded-xl border border-green-100 min-w-[100px]"><div className="text-[9px] font-bold text-green-500 uppercase tracking-wide mb-1">Hoàn thành</div><div className="text-xl font-black text-green-600 leading-none">{fileCompleted}</div></div>
-                                        <div className="bg-yellow-50 px-4 py-2 rounded-xl border border-yellow-100 min-w-[100px]"><div className="text-[9px] font-bold text-yellow-600 uppercase tracking-wide mb-1">Đang xử lý</div><div className="text-xl font-black text-yellow-600 leading-none">{fileProcessing}</div></div>
+                                        <div className="bg-amber-50 px-4 py-2 rounded-xl border border-amber-100 min-w-[100px]"><div className="text-[9px] font-bold text-amber-600 uppercase tracking-wide mb-1">Đang xử lý</div><div className="text-xl font-black text-amber-600 leading-none">{fileProcessing}</div></div>
                                         <div className="pl-4 border-l border-gray-200 flex flex-col justify-center items-end min-w-[60px]"><div className="text-2xl font-black text-gray-700">{filePercent}<span className="text-sm text-gray-400">%</span></div></div>
                                     </div>
                                 </div>
@@ -917,7 +997,7 @@ const Tracker: React.FC = () => {
                                                         <td className="px-6 py-4 text-center align-middle">
                                                             <span className={`inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-[10px] font-black shadow-sm uppercase tracking-wider border ${
                                                                 job.status === 'Completed' ? 'bg-green-100 text-green-700 border-green-200' :
-                                                                job.status === 'Processing' || job.status === 'Generating' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                                                                job.status === 'Processing' || job.status === 'Generating' ? 'bg-amber-50 text-amber-700 border-amber-200' :
                                                                 'bg-gray-100 text-gray-500 border-gray-200'
                                                             }`}>
                                                                 {job.status || 'Pending'}
@@ -925,7 +1005,7 @@ const Tracker: React.FC = () => {
                                                         </td>
                                                         <td className="px-6 py-4 align-middle">
                                                             <div className="flex justify-end items-center gap-2">
-                                                                <button onClick={() => handleResetJob(job)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-50 text-gray-400 hover:bg-yellow-500 hover:text-white transition-all duration-200 shadow-sm hover:shadow-md border border-gray-100" title="Tạo lại"><RetryIcon className="w-4 h-4" /></button>
+                                                                <button onClick={() => handleResetJob(job)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-50 text-gray-400 hover:bg-amber-500 hover:text-white transition-all duration-200 shadow-sm hover:shadow-md border border-gray-100" title="Tạo lại"><RetryIcon className="w-4 h-4" /></button>
                                                                 {job.videoPath ? (
                                                                     <>
                                                                         <button onClick={() => handleVideoAction('play', job)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-green-50 text-green-600 hover:bg-green-500 hover:text-white transition-all duration-200 shadow-sm hover:shadow-md border border-green-100"><PlayIcon className="w-4 h-4"/></button>
