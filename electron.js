@@ -522,7 +522,13 @@ app.whenReady().then(() => {
           click: () => {
             const focusedWindow = BrowserWindow.getFocusedWindow();
             if (focusedWindow) {
-              dialog.showMessageBox(focusedWindow, { type: 'info', title: 'About Prompt Generator Pro', message: `Prompt Generator Pro v${app.getVersion()}`, detail: 'An application to generate professional visual scripts for Music Videos and Live Shows.\n\nCreated by Cường-VFATS.' });
+              const currentYear = new Date().getFullYear();
+              dialog.showMessageBox(focusedWindow, { 
+                type: 'info', 
+                title: 'Thông tin ứng dụng', 
+                message: `Trọng Tool Auto Flow v${app.getVersion()}`, 
+                detail: `Ứng dụng tự động hóa quy trình sản xuất Video AI.\n\nThông tin bản cập nhật:\n- Giao diện Giáng Sinh (Warm Red Theme).\n- Tối ưu hiển thị thanh trạng thái Tracker.\n- Cải thiện hiệu năng xử lý file Excel.\n- Sửa các lỗi nhỏ và tối ưu trải nghiệm người dùng.\n\n© ${currentYear} Starbuckskohii-rgb.` 
+              });
             }
           }
         }
