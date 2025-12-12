@@ -495,7 +495,7 @@ app.whenReady().then(() => {
         {
           label: 'Hướng dẫn sử dụng',
           click: () => {
-            const guideWindow = new BrowserWindow({ width: 900, height: 700, title: 'Hướng dẫn sử dụng - Prompt Generator Pro', icon: path.join(__dirname, 'assets/icon.png') });
+            const guideWindow = new BrowserWindow({ width: 900, height: 700, title: 'Hướng dẫn sử dụng - Trọng Tool Auto Flow', icon: path.join(__dirname, 'assets/icon.png') });
             const guideUrl = app.isPackaged
                 ? path.join(__dirname, 'dist', 'guide.html')
                 : path.join(__dirname, 'guide.html');
@@ -527,7 +527,7 @@ app.whenReady().then(() => {
                 type: 'info', 
                 title: 'Thông tin ứng dụng', 
                 message: `Trọng Tool Auto Flow v${app.getVersion()}`, 
-                detail: `Ứng dụng tự động hóa quy trình sản xuất Video AI.\n\nThông tin bản cập nhật:\n- Giao diện Giáng Sinh (Warm Red Theme).\n- Tối ưu hiển thị thanh trạng thái Tracker.\n- Cải thiện hiệu năng xử lý file Excel.\n- Sửa các lỗi nhỏ và tối ưu trải nghiệm người dùng.\n\n© ${currentYear} Starbuckskohii-rgb.` 
+                detail: `Ứng dụng tự động hóa quy trình sản xuất Video AI.\n\nPhát triển bởi: Starbuckskohii-rgb\nCập nhật mới nhất: ${currentYear}\n\nHỗ trợ:\n- Tạo kịch bản tự động.\n- Theo dõi tiến độ ToolFlows.\n- Ghép video & Quản lý ảnh tham chiếu.` 
               });
             }
           }
@@ -1002,56 +1002,6 @@ ipcMain.handle('retry-job', async (event, { filePath, jobId }) => {
     return await updateExcelStatus(filePath, [jobId], '');
 });
 
-ipcMain.handle('delete-job-from-excel', async (event, { filePath, jobId }) => {
-    try {
-        if (!fs.existsSync(filePath)) throw new Error('File not found');
-        const fileContent = fs.readFileSync(filePath);
-        const workbook = XLSX.read(fileContent, { type: 'buffer' });
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        
-        // Read data with header
-        const data = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
-        
-        if (data.length < 2) throw new Error('Excel is empty or invalid');
-        
-        const headers = data[0].map(h => String(h).trim());
-        const idIndex = headers.indexOf('JOB_ID');
-        if (idIndex === -1) throw new Error('JOB_ID column not found');
-
-        // Create new data array skipping the row to delete
-        const newData = [data[0]]; // Keep headers
-        let rowDeleted = false;
-        
-        // Filter rows
-        for (let i = 1; i < data.length; i++) {
-            if (String(data[i][idIndex]) !== String(jobId)) {
-                newData.push(data[i]);
-            } else {
-                rowDeleted = true;
-            }
-        }
-
-        if (!rowDeleted) throw new Error('Job not found');
-
-        // Renumber IDs sequentially (Job_1, Job_2, ...)
-        for (let i = 1; i < newData.length; i++) {
-            newData[i][idIndex] = `Job_${i}`;
-        }
-
-        // Write back
-        const newSheet = XLSX.utils.aoa_to_sheet(newData);
-        if (worksheet['!cols']) newSheet['!cols'] = worksheet['!cols'];
-        const newWorkbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(newWorkbook, newSheet, sheetName);
-        fs.writeFileSync(filePath, XLSX.write(newWorkbook, { bookType: 'xlsx', type: 'buffer' }));
-
-        return { success: true };
-    } catch (e) {
-        return { success: false, error: e.message };
-    }
-});
-
 ipcMain.handle('retry-stuck-jobs', async (event, { filePath }) => {
     try {
         const buffer = fs.readFileSync(filePath);
@@ -1062,32 +1012,6 @@ ipcMain.handle('retry-stuck-jobs', async (event, { filePath }) => {
         
         if (stuckIds.length === 0) return { success: true };
         return await updateExcelStatus(filePath, stuckIds, '');
-    } catch (e) {
-        return { success: false, error: e.message };
-    }
-});
-
-ipcMain.handle('update-job-fields', async (event, { filePath, jobId, updates }) => {
-    return await updateExcelJobFields(filePath, jobId, updates);
-});
-
-ipcMain.handle('update-bulk-job-fields', async (event, { filePath, jobUpdates }) => {
-    return await updateBulkJobFields(filePath, jobUpdates);
-});
-
-ipcMain.handle('save-image-for-job', async (event, { excelPath, jobId, imageIndex, fileData, extension }) => {
-    try {
-        const dir = path.dirname(excelPath);
-        const excelName = path.basename(excelPath, '.xlsx');
-        const assetsDir = path.join(dir, `${excelName}_assets`);
-        
-        if (!fs.existsSync(assetsDir)) fs.mkdirSync(assetsDir);
-        
-        const fileName = `${jobId}_Ref_${imageIndex}${extension}`;
-        const filePath = path.join(assetsDir, fileName);
-        
-        fs.writeFileSync(filePath, Buffer.from(fileData));
-        return { success: true, path: filePath };
     } catch (e) {
         return { success: false, error: e.message };
     }

@@ -6,29 +6,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Trọng Tool Auto Flow</title>
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#b91c1c">
+    <meta name="theme-color" content="#881337">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Mountains+of+Christmas:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            /* NEW Christmas Red Theme Palette */
-            --bg-start: #fff1f2; /* Rose 50 */
-            --bg-end: #ffe4e6;   /* Rose 100 */
-            --card-bg: #ffffff;
-            --text-primary: #450a0a; /* Red 950 */
-            --text-secondary: #7f1d1d; /* Red 900 */
+            /* Christmas Night / Deep Burgundy Theme for High Contrast Snow */
+            --bg-start: #9f1239; /* Rose 800 */
+            --bg-end: #4a0404;   /* Deepest Red */
+            --card-bg: rgba(255, 255, 255, 0.96); /* High opacity white for readability */
             
-            /* Christmas Colors */
-            --christmas-red: #dc2626;
-            --christmas-green: #15803d;
-            --christmas-gold: #b45309;
+            --text-primary: #4a0404;
+            --text-secondary: #881337;
             
-            --shadow-color: rgba(220, 38, 38, 0.2); /* Stronger Red shadow */
+            --accent-red: #e11d48;
+            --shadow-color: rgba(0, 0, 0, 0.3);
         }
         body {
             font-family: 'Inter', sans-serif;
-            /* Warm Red/Snow Gradient */
-            background-image: linear-gradient(180deg, #FFFFFF 0%, #FFF0F0 100%);
+            background: linear-gradient(135deg, var(--bg-start) 0%, var(--bg-end) 100%);
             color: var(--text-primary);
             min-height: 100vh;
             overflow: hidden;
@@ -38,96 +34,81 @@
             font-family: 'Mountains of Christmas', cursive;
         }
 
-        /* Festive Scrollbar - Red Themed */
+        /* Custom Scrollbar - Adapted for dark background */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #fecaca; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: var(--christmas-red); }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
+        ::-webkit-scrollbar-thumb { background: #fb7185; border-radius: 4px; border: 2px solid rgba(0,0,0,0.1); }
+        ::-webkit-scrollbar-thumb:hover { background: #f43f5e; }
         
         .glassmorphism {
-            background: rgba(255, 255, 255, 0.9);
+            background: var(--card-bg);
             backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 200, 200, 0.6);
-            box-shadow: 0 8px 32px 0 var(--shadow-color);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
         }
         
         .glass-card {
             background: var(--card-bg);
-            border-radius: 1.5rem;
-            box-shadow: 0 10px 30px -5px rgba(220, 38, 38, 0.1), 0 4px 6px -2px rgba(220, 38, 38, 0.05);
-            border: 1px solid rgba(254, 202, 202, 0.8); /* Red 200 border */
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
         }
 
         .btn-primary {
-            /* Deep Festive Red Gradient */
-            background-image: linear-gradient(to right, #dc2626 0%, #991b1b 100%);
+            background-image: linear-gradient(135deg, #e11d48 0%, #9f1239 100%);
             transition: all 0.3s ease;
-            box-shadow: 0 4px 15px 0 rgba(220, 38, 38, 0.4);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
             color: white;
-            border: 1px solid #7f1d1d;
+            border: 1px solid rgba(255,255,255,0.2);
         }
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px 0 rgba(220, 38, 38, 0.5);
+            box-shadow: 0 6px 20px rgba(225, 29, 72, 0.5);
             filter: brightness(1.1);
         }
-        
-        .gradient-text {
-            background: linear-gradient(to right, #b91c1c, #d97706);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
 
-        /* Custom Range Slider (Festive Style - Gold/Red) */
+        /* Range Slider */
         input[type=range] {
             -webkit-appearance: none;
             width: 100%;
-            height: 8px;
-            background: #fee2e2;
-            border-radius: 4px;
+            height: 6px;
+            background: #fda4af;
+            border-radius: 3px;
             outline: none;
         }
         input[type=range]::-webkit-slider-thumb {
             -webkit-appearance: none;
             width: 20px;
             height: 20px;
-            background: var(--christmas-red);
+            background: var(--accent-red);
             border-radius: 50%;
             cursor: pointer;
             border: 2px solid #fff;
-            box-shadow: 0 2px 5px rgba(185, 28, 28, 0.3);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
             transition: transform 0.1s;
         }
         input[type=range]::-webkit-slider-thumb:hover {
-            transform: scale(1.2);
-            background: #991b1b;
+            transform: scale(1.15);
         }
 
         /* Loading Animation */
         .loader-ring { display: inline-block; position: relative; width: 64px; height: 64px; }
-        .loader-ring div { box-sizing: border-box; display: block; position: absolute; width: 50px; height: 50px; margin: 8px; border: 4px solid #fff; border-radius: 50%; animation: loader-ring 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite; border-color: #dc2626 transparent transparent transparent; }
+        .loader-ring div { box-sizing: border-box; display: block; position: absolute; width: 50px; height: 50px; margin: 8px; border: 4px solid #fff; border-radius: 50%; animation: loader-ring 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite; border-color: #fff transparent transparent transparent; }
         .loader-ring div:nth-child(1) { animation-delay: -0.45s; }
         .loader-ring div:nth-child(2) { animation-delay: -0.3s; }
         .loader-ring div:nth-child(3) { animation-delay: -0.15s; }
         @keyframes loader-ring { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* Floating Animation */
-        .floating-enter { animation: slideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-        @keyframes slideUp { from { transform: translateY(100px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-
-        .input-group {
-            transition: all 0.2s;
-        }
-        .input-group:focus-within {
-            border-color: var(--christmas-red);
-            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
-        }
+        /* Animations */
+        .floating-enter { animation: slideUp 0.4s ease-out forwards; }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         
-        /* Snowflakes */
-        .snow-bg {
-            background-image: radial-gradient(#fecaca 1px, transparent 1px);
-            background-size: 40px 40px;
-        }
+        .animate-fade-in-up { animation: fadeInUp 0.5s ease-out; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .text-sweet-red { color: #9f1239; }
+        .bg-sweet-red { background-color: #fff1f2; }
+        .border-sweet-red { border-color: #fecdd3; }
     </style>
 <script type="importmap">
 {
@@ -147,14 +128,7 @@
 </script>
 </head>
 <body>
-    <div id="root" class="snow-bg"></div>
+    <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
-    <script>
-      if ('serviceWorker' in navigator && (window.location.protocol === 'http:' || window.location.protocol === 'https:')) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').catch(() => {});
-        });
-      }
-    </script>
 </body>
 </html>

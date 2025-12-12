@@ -40,7 +40,7 @@ const Activation: React.FC<ActivationProps> = ({ machineId, onActivate }) => {
     setIsActivating(false);
   };
   return (
-    <div className="text-gray-800 min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-red-100 to-red-50 relative overflow-hidden">
+    <div className="text-gray-800 min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
       <SnowEffect />
       <div className="glass-card rounded-2xl p-8 shadow-2xl max-w-md w-full border-t-4 border-red-600 relative z-10">
         <div className="absolute -top-10 -right-8 text-6xl animate-bounce" style={{ animationDuration: '3s' }}>🎅</div>
@@ -67,7 +67,7 @@ const ApiKeyManagerScreen: React.FC<ApiKeyManagerProps> = ({ apiKeys, onKeySelec
     const [val, setVal] = useState('');
     const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); onKeyAdd({ id: crypto.randomUUID(), name, value: val }); };
     return (
-        <div className="min-h-screen flex items-center justify-center p-4 bg-red-50 relative">
+        <div className="min-h-screen flex items-center justify-center p-4 relative">
             <SnowEffect />
             <div className="glass-card p-8 rounded-2xl max-w-2xl w-full border border-red-100 shadow-xl relative z-10">
                 <div className="absolute -top-6 -left-6 text-5xl rotate-12">🎁</div>
@@ -593,7 +593,7 @@ const App: React.FC = () => {
         }
     };
 
-    if (!configLoaded) return <div className="min-h-screen flex items-center justify-center text-red-500 bg-red-50"><LoaderIcon /> <span className="ml-2 font-bold">Đang tải dữ liệu Giáng Sinh...</span></div>;
+    if (!configLoaded) return <div className="min-h-screen flex items-center justify-center text-red-500 bg-transparent"><LoaderIcon /> <span className="ml-2 font-bold">Đang tải dữ liệu Giáng Sinh...</span></div>;
     if (!isActivated) return <Activation machineId={machineId} onActivate={async (key) => { saveConfig({ licenseKey: key }); setIsActivated(true); return true; }} />;
     if (!activeApiKey) return <ApiKeyManagerScreen apiKeys={apiKeys} onKeyAdd={(k) => { const newKeys=[...apiKeys, k]; setApiKeys(newKeys); saveConfig({ apiKeysEncrypted: encrypt(JSON.stringify(newKeys)) }); }} onKeyDelete={(id) => { const newKeys=apiKeys.filter(k=>k.id!==id); setApiKeys(newKeys); saveConfig({ apiKeysEncrypted: encrypt(JSON.stringify(newKeys)) }); }} onKeySelect={(k) => { setActiveApiKey(k); saveConfig({ activeApiKeyId: k.id }); }} />;
 

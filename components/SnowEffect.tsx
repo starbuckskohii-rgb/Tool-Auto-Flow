@@ -2,13 +2,13 @@ import React, { useMemo } from 'react';
 
 export const SnowEffect: React.FC = () => {
   const snowflakes = useMemo(() => {
-    return Array.from({ length: 50 }).map((_, i) => ({
+    return Array.from({ length: 60 }).map((_, i) => ({
       id: i,
       left: Math.random() * 100 + '%',
-      animationDuration: Math.random() * 3 + 10 + 's', // 10-13s
+      animationDuration: Math.random() * 5 + 8 + 's', // 8-13s (Slightly faster fall)
       animationDelay: Math.random() * 5 + 's',
-      fontSize: Math.random() * 10 + 10 + 'px',
-      opacity: Math.random() * 0.5 + 0.3
+      fontSize: Math.random() * 14 + 12 + 'px', // Bigger: 12px - 26px
+      opacity: Math.random() * 0.4 + 0.6 // More visible: 0.6 - 1.0
     }));
   }, []);
 
@@ -21,12 +21,13 @@ export const SnowEffect: React.FC = () => {
         }
         .snowflake {
           position: absolute;
-          top: -20px;
+          top: -30px;
           color: white;
-          text-shadow: 0 0 5px rgba(255,255,255,0.8);
+          text-shadow: 0 0 6px rgba(255,255,255,0.9);
           animation-name: snowfall;
           animation-timing-function: linear;
           animation-iteration-count: infinite;
+          filter: drop-shadow(0 0 2px rgba(255,255,255,0.5));
         }
       `}</style>
       {snowflakes.map((flake) => (
@@ -41,7 +42,7 @@ export const SnowEffect: React.FC = () => {
             opacity: flake.opacity
           }}
         >
-          {Math.random() > 0.5 ? '❄' : '❅'}
+          {Math.random() > 0.6 ? '❄' : '❅'}
         </div>
       ))}
     </div>

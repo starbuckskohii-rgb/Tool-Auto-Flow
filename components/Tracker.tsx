@@ -44,7 +44,8 @@ const Tracker: React.FC = () => {
     const [activeFileIndex, setActiveFileIndex] = useState<number>(0);
     const [loading, setLoading] = useState(false);
     const [combineMode, setCombineMode] = useState<'normal' | 'timed'>('normal');
-    const [isStatsExpanded, setIsStatsExpanded] = useState(true);
+    const [isStatsExpanded, setIsStatsExpanded] = useState(true); // Global dashboard stats
+    const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(true); // File specific header collapse state
     const [filterStatus, setFilterStatus] = useState<string>('All');
     
     // State để ép buộc reload ảnh (cache busting)
@@ -855,50 +856,105 @@ const Tracker: React.FC = () => {
                 <div className="flex-1 flex flex-col gap-4 overflow-hidden">
                     {activeFile ? (
                         <>
-                            {/* Header - NARROWED WIDTH for STATUS BAR */}
-                            <div className="bg-white/70 backdrop-blur-md p-1 rounded-2xl border border-white/60 shadow-sm flex flex-col gap-1 max-w-[98%] mx-auto w-full">
-                                <div className="flex items-center p-3 gap-4">
-                                    <div className="flex-1 min-w-0">
-                                        <h2 className="text-lg font-extrabold text-gray-800 truncate" title={activeFile.name}>{activeFile.name}</h2>
-                                        <p className="text-[10px] text-gray-400 font-mono mt-0.5 truncate cursor-pointer hover:text-red-600" onClick={copyFolderPath}>{activeFile.path}</p>
-                                    </div>
-                                    <div className="flex gap-3">
-                                        <div className="bg-red-50 px-4 py-2 rounded-xl border border-red-100 min-w-[100px]"><div className="text-[9px] font-bold text-red-400 uppercase tracking-wide mb-1">Tổng Job</div><div className="text-xl font-black text-red-600 leading-none">{fileTotal}</div></div>
-                                        <div className="bg-green-50 px-4 py-2 rounded-xl border border-green-100 min-w-[100px]"><div className="text-[9px] font-bold text-green-500 uppercase tracking-wide mb-1">Hoàn thành</div><div className="text-xl font-black text-green-600 leading-none">{fileCompleted}</div></div>
-                                        <div className="bg-amber-50 px-4 py-2 rounded-xl border border-amber-100 min-w-[100px]"><div className="text-[9px] font-bold text-amber-600 uppercase tracking-wide mb-1">Đang xử lý</div><div className="text-xl font-black text-amber-600 leading-none">{fileProcessing}</div></div>
-                                        <div className="pl-4 border-l border-gray-200 flex flex-col justify-center items-end min-w-[60px]"><div className="text-2xl font-black text-gray-700">{filePercent}<span className="text-sm text-gray-400">%</span></div></div>
-                                    </div>
+                            {/* NEW: Collapsible & Compact File Header */}
+                            <div className="bg-white/70 backdrop-blur-md rounded-2xl border border-white/60 shadow-sm flex flex-col max-w-[98%] mx-auto w-full transition-all duration-300 relative group/header">
+                                
+                                {/* Header Toggle Handle - Shows on Hover */}
+                                <div className="absolute -bottom-3 left-1/2 transform -translate-x-1/2 opacity-0 group-hover/header:opacity-100 transition-opacity z-20">
+                                    <button 
+                                        onClick={() => setIsHeaderCollapsed(!isHeaderCollapsed)}
+                                        className="bg-white border border-gray-200 shadow-sm rounded-full p-1 text-gray-400 hover:text-red-500"
+                                    >
+                                        {isHeaderCollapsed ? <ChevronDownIcon className="w-3 h-3"/> : <ChevronUpIcon className="w-3 h-3"/>}
+                                    </button>
                                 </div>
-                                <div className="bg-white/50 rounded-xl px-4 py-2 flex items-center justify-between">
-                                    <div className="flex items-center gap-4 text-xs font-bold text-gray-500">
-                                        <span className="uppercase tracking-wider text-[10px]">Ghép Video:</span>
-                                        <label className="flex items-center gap-1.5 cursor-pointer hover:text-red-600 transition"><input type="radio" name="combine" checked={combineMode==='normal'} onChange={()=>setCombineMode('normal')} className="accent-red-600 w-3 h-3"/> Nối thường</label>
-                                        <label className="flex items-center gap-1.5 cursor-pointer hover:text-red-600 transition"><input type="radio" name="combine" checked={combineMode==='timed'} onChange={()=>setCombineMode('timed')} className="accent-red-600 w-3 h-3"/> Theo thời gian</label>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        {/* Filter Dropdown */}
-                                        <div className="flex items-center gap-1.5 bg-white border border-gray-200 px-2 py-1.5 rounded-lg shadow-sm mr-2">
-                                            <FilterIcon className="w-3.5 h-3.5 text-gray-500" />
-                                            <select 
-                                                value={filterStatus} 
-                                                onChange={(e) => setFilterStatus(e.target.value)} 
-                                                className="text-xs font-bold text-gray-600 bg-transparent outline-none cursor-pointer"
-                                            >
-                                                <option value="All">Tất cả ({activeFile.jobs.length})</option>
-                                                <option value="Completed">Hoàn thành ({activeFile.jobs.filter(j => j.status === 'Completed').length})</option>
-                                                <option value="Processing">Đang xử lý ({activeFile.jobs.filter(j => j.status === 'Processing' || j.status === 'Generating').length})</option>
-                                                <option value="Pending">Chờ xử lý ({activeFile.jobs.filter(j => j.status === 'Pending').length})</option>
-                                                <option value="Failed">Thất bại ({activeFile.jobs.filter(j => j.status === 'Failed').length})</option>
-                                            </select>
+
+                                {isHeaderCollapsed ? (
+                                    /* COMPACT MODE */
+                                    <div className="flex items-center p-2 gap-3 h-14">
+                                        {/* 1. Title & Path */}
+                                        <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                            <div className="flex items-center gap-2">
+                                                <h2 className="text-sm font-extrabold text-gray-800 truncate max-w-[200px]" title={activeFile.name}>{activeFile.name}</h2>
+                                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${filePercent === 100 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>{filePercent}%</span>
+                                            </div>
+                                            <p className="text-[9px] text-gray-400 font-mono truncate cursor-pointer hover:text-red-600" onClick={copyFolderPath}>{activeFile.path}</p>
                                         </div>
 
-                                        <button onClick={handleCombine} className="px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-red-600 text-xs font-bold shadow-sm hover:shadow hover:text-red-700 transition">Ghép File Này</button>
-                                        <button onClick={handleCombineAll} className="px-3 py-1.5 rounded-lg bg-red-600 text-white border border-transparent text-xs font-bold shadow-sm hover:bg-red-700 transition">Ghép Tất Cả</button>
-                                        <div className="h-4 w-px bg-gray-300 mx-2"></div>
-                                        <button onClick={handleRefresh} className="p-1.5 rounded-lg text-gray-400 hover:bg-white hover:text-green-600 transition" title="Làm mới"><LinkIcon className="w-4 h-4"/></button>
-                                        <button onClick={handleRetryStuck} className="p-1.5 rounded-lg text-gray-400 hover:bg-white hover:text-orange-500 transition" title="Sửa lỗi kẹt"><RetryIcon className="w-4 h-4"/></button>
+                                        {/* 2. Mini Stats (Text Only) */}
+                                        <div className="flex items-center gap-3 text-[10px] font-bold text-gray-500 border-l border-r border-gray-200 px-3">
+                                            <div title="Total">ALL: <span className="text-gray-800">{fileTotal}</span></div>
+                                            <div title="Completed" className="text-green-600">DONE: {fileCompleted}</div>
+                                            <div title="Processing" className="text-amber-600">PROC: {fileProcessing}</div>
+                                        </div>
+
+                                        {/* 3. Compact Controls */}
+                                        <div className="flex items-center gap-2">
+                                            {/* Combine Dropdown (Simulated) */}
+                                            <div className="flex items-center gap-1 bg-white border border-gray-200 px-2 py-1 rounded-lg">
+                                                <span className="text-[9px] font-bold text-gray-400">GHÉP:</span>
+                                                <button onClick={handleCombine} className="text-[10px] font-bold text-red-600 hover:underline">File Này</button>
+                                                <span className="text-gray-300">|</span>
+                                                <button onClick={handleCombineAll} className="text-[10px] font-bold text-red-600 hover:underline">Tất Cả</button>
+                                            </div>
+
+                                            {/* Filter Compact */}
+                                             <div className="flex items-center bg-white border border-gray-200 px-2 py-1 rounded-lg">
+                                                <FilterIcon className="w-3 h-3 text-gray-400 mr-1" />
+                                                <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="text-[10px] font-bold text-gray-600 bg-transparent outline-none cursor-pointer w-20">
+                                                    <option value="All">All</option>
+                                                    <option value="Completed">Done</option>
+                                                    <option value="Processing">Proc</option>
+                                                    <option value="Pending">Wait</option>
+                                                    <option value="Failed">Fail</option>
+                                                </select>
+                                            </div>
+
+                                            <button onClick={handleRefresh} className="p-1.5 rounded bg-gray-50 text-gray-500 hover:bg-white hover:text-green-600 border border-transparent hover:border-gray-200 transition" title="Làm mới"><LinkIcon className="w-3.5 h-3.5"/></button>
+                                            <button onClick={handleRetryStuck} className="p-1.5 rounded bg-gray-50 text-gray-500 hover:bg-white hover:text-orange-500 border border-transparent hover:border-gray-200 transition" title="Sửa lỗi kẹt"><RetryIcon className="w-3.5 h-3.5"/></button>
+                                        </div>
                                     </div>
-                                </div>
+                                ) : (
+                                    /* EXPANDED MODE (Original Layout) */
+                                    <div className="flex flex-col gap-1 p-1">
+                                        <div className="flex items-center p-3 gap-4">
+                                            <div className="flex-1 min-w-0">
+                                                <h2 className="text-lg font-extrabold text-gray-800 truncate" title={activeFile.name}>{activeFile.name}</h2>
+                                                <p className="text-[10px] text-gray-400 font-mono mt-0.5 truncate cursor-pointer hover:text-red-600" onClick={copyFolderPath}>{activeFile.path}</p>
+                                            </div>
+                                            <div className="flex gap-3">
+                                                <div className="bg-red-50 px-4 py-2 rounded-xl border border-red-100 min-w-[100px]"><div className="text-[9px] font-bold text-red-400 uppercase tracking-wide mb-1">Tổng Job</div><div className="text-xl font-black text-red-600 leading-none">{fileTotal}</div></div>
+                                                <div className="bg-green-50 px-4 py-2 rounded-xl border border-green-100 min-w-[100px]"><div className="text-[9px] font-bold text-green-500 uppercase tracking-wide mb-1">Hoàn thành</div><div className="text-xl font-black text-green-600 leading-none">{fileCompleted}</div></div>
+                                                <div className="bg-amber-50 px-4 py-2 rounded-xl border border-amber-100 min-w-[100px]"><div className="text-[9px] font-bold text-amber-600 uppercase tracking-wide mb-1">Đang xử lý</div><div className="text-xl font-black text-amber-600 leading-none">{fileProcessing}</div></div>
+                                                <div className="pl-4 border-l border-gray-200 flex flex-col justify-center items-end min-w-[60px]"><div className="text-2xl font-black text-gray-700">{filePercent}<span className="text-sm text-gray-400">%</span></div></div>
+                                            </div>
+                                        </div>
+                                        <div className="bg-white/50 rounded-xl px-4 py-2 flex items-center justify-between">
+                                            <div className="flex items-center gap-4 text-xs font-bold text-gray-500">
+                                                <span className="uppercase tracking-wider text-[10px]">Ghép Video:</span>
+                                                <label className="flex items-center gap-1.5 cursor-pointer hover:text-red-600 transition"><input type="radio" name="combine" checked={combineMode==='normal'} onChange={()=>setCombineMode('normal')} className="accent-red-600 w-3 h-3"/> Nối thường</label>
+                                                <label className="flex items-center gap-1.5 cursor-pointer hover:text-red-600 transition"><input type="radio" name="combine" checked={combineMode==='timed'} onChange={()=>setCombineMode('timed')} className="accent-red-600 w-3 h-3"/> Theo thời gian</label>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <div className="flex items-center gap-1.5 bg-white border border-gray-200 px-2 py-1.5 rounded-lg shadow-sm mr-2">
+                                                    <FilterIcon className="w-3.5 h-3.5 text-gray-500" />
+                                                    <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="text-xs font-bold text-gray-600 bg-transparent outline-none cursor-pointer">
+                                                        <option value="All">Tất cả ({activeFile.jobs.length})</option>
+                                                        <option value="Completed">Hoàn thành ({activeFile.jobs.filter(j => j.status === 'Completed').length})</option>
+                                                        <option value="Processing">Đang xử lý ({activeFile.jobs.filter(j => j.status === 'Processing' || j.status === 'Generating').length})</option>
+                                                        <option value="Pending">Chờ xử lý ({activeFile.jobs.filter(j => j.status === 'Pending').length})</option>
+                                                        <option value="Failed">Thất bại ({activeFile.jobs.filter(j => j.status === 'Failed').length})</option>
+                                                    </select>
+                                                </div>
+                                                <button onClick={handleCombine} className="px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-red-600 text-xs font-bold shadow-sm hover:shadow hover:text-red-700 transition">Ghép File Này</button>
+                                                <button onClick={handleCombineAll} className="px-3 py-1.5 rounded-lg bg-red-600 text-white border border-transparent text-xs font-bold shadow-sm hover:bg-red-700 transition">Ghép Tất Cả</button>
+                                                <div className="h-4 w-px bg-gray-300 mx-2"></div>
+                                                <button onClick={handleRefresh} className="p-1.5 rounded-lg text-gray-400 hover:bg-white hover:text-green-600 transition" title="Làm mới"><LinkIcon className="w-4 h-4"/></button>
+                                                <button onClick={handleRetryStuck} className="p-1.5 rounded-lg text-gray-400 hover:bg-white hover:text-orange-500 transition" title="Sửa lỗi kẹt"><RetryIcon className="w-4 h-4"/></button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Job Table */}
