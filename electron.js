@@ -10,8 +10,8 @@ const { randomUUID } = require('crypto');
 // Configure logging for autoUpdater
 autoUpdater.logger = require('electron-log');
 autoUpdater.logger.transports.file.level = 'info';
-// Tắt tự động tải về nếu muốn người dùng xác nhận, nhưng ở đây ta để true cho tiện
-autoUpdater.autoDownload = true; 
+// Disable auto download to show Release Notes first
+autoUpdater.autoDownload = false; 
 
 const fileWatchers = new Map();
 const jobStateTimestamps = new Map(); // Map<filePath, Map<jobId, { status, timestamp }>>
@@ -462,8 +462,8 @@ function createWindow() {
     if (mainWindow) mainWindow.webContents.send('update-status', 'checking');
   });
 
-  autoUpdater.on('update-available', () => {
-    if (mainWindow) mainWindow.webContents.send('update-status', 'available');
+  autoUpdater.on('update-available', (info) => {
+    if (mainWindow) mainWindow.webContents.send('update-available-prompt', info);
   });
 
   autoUpdater.on('update-not-available', () => {
@@ -474,12 +474,12 @@ function createWindow() {
     if (mainWindow) mainWindow.webContents.send('update-status', 'error', err.message);
   });
 
-  autoUpdater.on('update-downloaded', () => {
-      showWindowAndNotify(
-          'Có bản cập nhật mới!',
-          'Bản cập nhật mới đã được tải về. Vui lòng nhấn OK để khởi động lại ứng dụng.',
-          'update'
-      );
+  autoUpdater.on('download-progress', (progressObj) => {
+    if (mainWindow) mainWindow.webContents.send('download-progress', progressObj.percent);
+  });
+
+  autoUpdater.on('update-downloaded', (info) => {
+      if (mainWindow) mainWindow.webContents.send('update-downloaded', info);
   });
 }
 
@@ -576,6 +576,15 @@ app.on('activate', () => {
 ipcMain.handle('get-app-version', () => app.getVersion());
 ipcMain.handle('check-for-updates', async () => {
     return await autoUpdater.checkForUpdates();
+});
+
+// Handle update actions
+ipcMain.handle('start-download-update', async () => {
+    autoUpdater.downloadUpdate();
+});
+
+ipcMain.handle('quit-and-install', async () => {
+    autoUpdater.quitAndInstall();
 });
 
 ipcMain.handle('get-app-config', () => readConfig());
