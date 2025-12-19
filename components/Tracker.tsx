@@ -10,10 +10,6 @@ import {
   ExternalLinkIcon, 
   CogIcon,
   SearchIcon,
-  LinkIcon,
-  ChevronUpIcon,
-  ChevronDownIcon,
-  MaximizeIcon,
   XCircleIcon,
   TableDeleteIcon,
   FilterIcon,
@@ -44,8 +40,7 @@ const Tracker: React.FC = () => {
     const [activeFileIndex, setActiveFileIndex] = useState<number>(0);
     const [loading, setLoading] = useState(false);
     const [combineMode, setCombineMode] = useState<'normal' | 'timed'>('normal');
-    const [isStatsExpanded, setIsStatsExpanded] = useState(true); // Global dashboard stats
-    const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(true); // File specific header collapse state
+    const [isStatsExpanded] = useState(true); // Global dashboard stats
     const [filterStatus, setFilterStatus] = useState<string>('All');
     
     // State để ép buộc reload ảnh (cache busting)
@@ -57,11 +52,11 @@ const Tracker: React.FC = () => {
     const prevCompletedRef = useRef<Set<string> | null>(null);
 
     // Stats
-    const totalFiles = files.length;
-    const completedFilesCount = files.filter(f => f.jobs.length > 0 && f.jobs.every(j => j.status === 'Completed')).length;
-    const totalJobs = files.reduce((acc, f) => acc + f.jobs.length, 0);
-    const totalCompleted = files.reduce((acc, f) => acc + f.jobs.filter(j => j.status === 'Completed').length, 0);
-    const globalPercent = totalJobs > 0 ? Math.round((totalCompleted / totalJobs) * 100) : 0;
+    
+    
+    
+    
+    
 
     // Helper: Hidden File Input Ref for specific slot uploads
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -644,9 +639,6 @@ const Tracker: React.FC = () => {
     const fileCompleted = activeFile ? activeFile.jobs.filter(j => j.status === 'Completed').length : 0;
     const fileProcessing = activeFile ? activeFile.jobs.filter(j => j.status === 'Processing' || j.status === 'Generating').length : 0;
     const filePercent = fileTotal > 0 ? Math.round((fileCompleted / fileTotal) * 100) : 0;
-
-    // Helper to check for image extensions
-    const isImageFile = (path: string) => /\.(jpg|jpeg|png|webp)$/i.test(path);
 
     if (!isElectron) return <div className="text-center p-10 text-gray-500">Chức năng này chỉ hoạt động trên phiên bản Desktop (Electron).</div>;
 

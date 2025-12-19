@@ -87,7 +87,7 @@ const ChristmasLights: React.FC = () => {
     const colors = ['#ef4444', '#fbbf24', '#22c55e', '#3b82f6', '#a855f7']; // Red, Gold, Green, Blue, Purple
 
     // Helper to generate a draped wire path and bulb positions
-    const generateDrapedStrand = (length: number, isVertical: boolean) => {
+    const generateDrapedStrand = (length: number) => {
         const segmentLength = 120; // Distance between "hooks"
         const sag = 25; // How deep the wire hangs
         const bulbCountPerSegment = 3; // Bulbs per drape
@@ -125,9 +125,9 @@ const ChristmasLights: React.FC = () => {
 
     const { width, height } = dimensions;
     // Removed Top Strand to prevent covering text
-    const bottomStrand = useMemo(() => generateDrapedStrand(width, false), [width]);
-    const leftStrand = useMemo(() => generateDrapedStrand(height, true), [height]); 
-    const rightStrand = useMemo(() => generateDrapedStrand(height, true), [height]);
+    const bottomStrand = useMemo(() => generateDrapedStrand(width), [width]);
+    const leftStrand = useMemo(() => generateDrapedStrand(height), [height]); 
+    const rightStrand = useMemo(() => generateDrapedStrand(height), [height]);
 
     const BulbGroup = ({ bulbs }: { bulbs: any[] }) => (
         <>
