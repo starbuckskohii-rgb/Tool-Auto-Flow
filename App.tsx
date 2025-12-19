@@ -43,7 +43,7 @@ const Activation: React.FC<ActivationProps> = ({ machineId, onActivate }) => {
     <div className="text-gray-800 min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
       <SnowEffect />
       <div className="glass-card rounded-2xl p-8 shadow-2xl max-w-md w-full border-t-4 border-red-600 relative z-10">
-        <div className="absolute -top-10 -right-8 text-6xl animate-bounce" style={{ animationDuration: '3s' }}>🎁</div>
+        <div className="absolute -top-10 -right-8 text-6xl animate-bounce" style={{ animationDuration: '3s' }}>🎅</div>
         <h1 className="text-4xl font-bold mb-4 text-center text-red-800 font-christmas">🎄 Kích hoạt ứng dụng</h1>
         <p className="mb-4 text-sm text-gray-700">Mã máy: <code className="bg-red-100 p-1 rounded select-all text-red-800 font-bold border border-red-200">{machineId}</code></p>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -598,7 +598,7 @@ const App: React.FC = () => {
     if (!activeApiKey) return <ApiKeyManagerScreen apiKeys={apiKeys} onKeyAdd={(k) => { const newKeys=[...apiKeys, k]; setApiKeys(newKeys); saveConfig({ apiKeysEncrypted: encrypt(JSON.stringify(newKeys)) }); }} onKeyDelete={(id) => { const newKeys=apiKeys.filter(k=>k.id!==id); setApiKeys(newKeys); saveConfig({ apiKeysEncrypted: encrypt(JSON.stringify(newKeys)) }); }} onKeySelect={(k) => { setActiveApiKey(k); saveConfig({ activeApiKeyId: k.id }); }} />;
 
     return (
-        <div className="min-h-screen relative pb-6">
+        <div className="min-h-screen relative pl-[26px] pr-[26px]">
             <SnowEffect />
             {/* Update Available Modal - Showing Release Notes */}
             {updateAvailableModal && (
@@ -663,44 +663,13 @@ const App: React.FC = () => {
                 </div>
             )}
 
-             {/* Header - Christmas Style */}
+             {/* Header - Christmas Style (Redder) */}
              <header className="bg-white/95 backdrop-blur-md border-b-2 border-red-200 sticky top-0 z-50 shadow-sm relative overflow-hidden">
-                 {/* Marquee Text - Updated with slower speed (80s) and alternating logic via long string */}
-                 <div className="absolute top-1 left-0 w-full overflow-hidden pointer-events-none opacity-90 marquee-container z-[60]">
-                    <div 
-                        className="animate-marquee font-christmas text-2xl font-bold drop-shadow-md flex items-center gap-16 py-1"
-                        style={{ animationDuration: '80s' }} // Slower speed as requested
-                    >
-                        {[1, 2].map((i) => (
-                            <React.Fragment key={i}>
-                                {/* Phrase 1: Merry Christmas */}
-                                <span className="flex items-center gap-3 min-w-[50vw] justify-center">
-                                    <span className="text-yellow-400 animate-pulse">✨</span> 
-                                    <span className="text-red-600 text-3xl" style={{textShadow: '0 0 5px rgba(220, 38, 38, 0.3)'}}>MERRY CHRISTMAS</span> 
-                                    <span className="text-yellow-400 animate-pulse">✨</span>
-                                </span>
-                                
-                                {/* Spacing to ensure they don't appear together immediately */}
-                                <span className="w-[20vw]"></span>
-
-                                {/* Phrase 2: Happy New Year */}
-                                <span className="flex items-center gap-3 min-w-[50vw] justify-center">
-                                    <span className="text-yellow-400 animate-pulse">🎆</span> 
-                                    <span className="text-green-600 text-3xl" style={{textShadow: '0 0 5px rgba(22, 163, 74, 0.3)'}}>HAPPY NEW YEAR 2026</span> 
-                                    <span className="text-yellow-400 animate-pulse">🎆</span>
-                                </span>
-
-                                <span className="w-[20vw]"></span>
-                            </React.Fragment>
-                        ))}
-                    </div>
-                 </div>
                  
-                 <div className="mx-auto px-4 sm:px-6 lg:px-8 max-w-[98%] w-full relative z-10 pt-8 pb-3">
-                     <div className="flex justify-between items-center">
+                 <div className="mx-auto px-4 sm:px-6 lg:px-8 max-w-[98%] w-full relative z-10">
+                     <div className="flex justify-between h-16 items-center">
                          <div className="flex items-center gap-8">
-                             {/* UPDATED: Blinking Title Effect */}
-                             <h1 className="text-3xl font-christmas font-bold text-red-800 tracking-tight flex items-center gap-2 drop-shadow-sm animate-neon-blink">
+                             <h1 className="text-3xl font-christmas font-bold text-red-800 tracking-tight flex items-center gap-2 drop-shadow-sm">
                                  <span>🎅</span> Trọng - Tool Auto Flow
                              </h1>
                              <div className="hidden md:flex bg-red-50 p-1 rounded-xl border border-red-100 shadow-inner">

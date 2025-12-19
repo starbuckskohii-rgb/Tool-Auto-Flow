@@ -1,250 +1,375 @@
-import React, { useMemo, useEffect, useState } from 'react';
+import React, { useMemo, useEffect, useRef } from 'react';
 
-// --- Improved Firework Component ---
-const Firework: React.FC<{ x: number, y: number, color: string }> = ({ x, y, color }) => {
-    const particles = useMemo(() => {
-        return Array.from({ length: 36 }).map((_, i) => { 
-            const angle = (Math.PI * 2 * i) / 36;
-            const velocity = 80 + Math.random() * 60; 
-            const tx = Math.cos(angle) * velocity;
-            const ty = Math.sin(angle) * velocity;
-            return { id: i, tx, ty };
-        });
-    }, []);
+// --- FIREWORKS LOGIC (CANVAS) ---
+const FireworksCanvas: React.FC = () => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
-    return (
-        <div style={{ position: 'absolute', left: x, top: y, pointerEvents: 'none', zIndex: 1 }}>
-            {particles.map(p => (
-                <div 
-                    key={`p-${p.id}`}
-                    style={{
-                        position: 'absolute',
-                        width: '3px', 
-                        height: '3px',
-                        backgroundColor: color,
-                        borderRadius: '50%',
-                        left: 0, top: 0,
-                        boxShadow: `0 0 6px ${color}, 0 0 10px #fff`, 
-                        animation: `explode-${p.id} 2s ease-out forwards`
-                    }}
-                >
-                    <style>{`
-                        @keyframes explode-${p.id} {
-                            0% { transform: translate(0,0) scale(1); opacity: 1; }
-                            40% { opacity: 1; }
-                            100% { 
-                                transform: translate(${p.tx}px, ${p.ty + 150}px) scale(0);
-                                opacity: 0; 
-                            }
-                        }
-                    `}</style>
-                </div>
-            ))}
-        </div>
-    );
-};
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
-const FireworksDisplay: React.FC = () => {
-    const [fireworks, setFireworks] = useState<{id: number, x: number, y: number, color: string}[]>([]);
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+    canvas.width = width;
+    canvas.height = height;
 
-    useEffect(() => {
-        const colors = ['#ff0055', '#00ffaa', '#ffff00', '#00ccff', '#ff00ff', '#ffffff', '#ff9900'];
-        const interval = setInterval(() => {
-            const count = Math.random() > 0.7 ? 2 : 1;
-            for (let i = 0; i < count; i++) {
-                const id = Date.now() + i;
-                const x = Math.random() * window.innerWidth;
-                const y = Math.random() * (window.innerHeight * 0.6); 
-                const color = colors[Math.floor(Math.random() * colors.length)];
-                setFireworks(prev => [...prev, { id, x, y, color }]);
-                setTimeout(() => {
-                    setFireworks(prev => prev.filter(f => f.id !== id));
-                }, 2100);
-            }
-        }, 1500);
-        return () => clearInterval(interval);
-    }, []);
+    const particles: Particle[] = [];
+    const fireworks: Firework[] = [];
 
-    return (
-        <div className="fixed inset-0 pointer-events-none z-[2] overflow-hidden">
-            {fireworks.map(fw => (
-                <Firework key={fw.id} x={fw.x} y={fw.y} color={fw.color} />
-            ))}
-        </div>
-    );
-};
+    class Firework {
+      x: number;
+      y: number;
+      sx: number;
+      sy: number;
+      hue: number;
+      brightness: number;
+      
+      constructor() {
+        this.x = Math.random() * width;
+        this.y = height;
+        this.sx = Math.random() * 3 - 1.5;
+        this.sy = Math.random() * -3 - 4;
+        this.hue = Math.random() * 360;
+        this.brightness = Math.random() * 50 + 50;
+      }
 
-// --- Draped Christmas Lights (Tree/Swag Style) ---
-const ChristmasLights: React.FC = () => {
-    const [dimensions, setDimensions] = useState({ width: window.innerWidth, height: window.innerHeight });
+      update(index: number) {
+        this.x += this.sx;
+        this.y += this.sy;
+        this.sy += 0.05; // gravity
 
-    useEffect(() => {
-        const handleResize = () => setDimensions({ width: window.innerWidth, height: window.innerHeight });
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
-
-    const colors = ['#ef4444', '#fbbf24', '#22c55e', '#3b82f6', '#a855f7']; // Red, Gold, Green, Blue, Purple
-
-    // Helper to generate a draped wire path and bulb positions
-    const generateDrapedStrand = (length: number) => {
-        const segmentLength = 120; // Distance between "hooks"
-        const sag = 25; // How deep the wire hangs
-        const bulbCountPerSegment = 3; // Bulbs per drape
-        
-        const segments = Math.ceil(length / segmentLength);
-        let pathD = `M 0,0`;
-        const bulbs: {x: number, y: number, color: string, delay: number}[] = [];
-
-        for (let i = 0; i < segments; i++) {
-            const startX = i * segmentLength;
-            const endX = (i + 1) * segmentLength;
-            const midX = startX + (segmentLength / 2);
-            
-            // Draw curve: Quadratic Bezier (Start -> Control Point -> End)
-            pathD += ` Q ${midX},${sag * 2} ${endX},0`;
-
-            // Place bulbs along the theoretical curve
-            for (let b = 1; b <= bulbCountPerSegment; b++) {
-                const t = b / (bulbCountPerSegment + 1); // 0.25, 0.5, 0.75
-                
-                const bx = (1-t)*(1-t)*startX + 2*(1-t)*t*midX + t*t*endX;
-                const by = (1-t)*(1-t)*0 + 2*(1-t)*t*(sag * 2) + t*t*0;
-
-                bulbs.push({
-                    x: bx,
-                    y: by,
-                    color: colors[Math.floor(Math.random() * colors.length)],
-                    delay: Math.random() * 2 // Random blink delay
-                });
-            }
+        // Explode when it reaches peak or slows down
+        if (this.sy >= -1) {
+          createParticles(this.x, this.y, this.hue);
+          fireworks.splice(index, 1);
         }
+      }
 
-        return { pathD, bulbs };
+      draw() {
+        if(!ctx) return;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, 2, 0, Math.PI * 2);
+        ctx.fillStyle = `hsl(${this.hue}, 100%, ${this.brightness}%)`;
+        ctx.fill();
+      }
+    }
+
+    class Particle {
+      x: number;
+      y: number;
+      vx: number;
+      vy: number;
+      alpha: number;
+      hue: number;
+      decay: number;
+
+      constructor(x: number, y: number, hue: number) {
+        this.x = x;
+        this.y = y;
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 3 + 1;
+        this.vx = Math.cos(angle) * speed;
+        this.vy = Math.sin(angle) * speed;
+        this.alpha = 1;
+        this.hue = hue;
+        this.decay = Math.random() * 0.015 + 0.01;
+      }
+
+      update(index: number) {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += 0.05; // gravity
+        this.alpha -= this.decay;
+
+        if (this.alpha <= 0) {
+          particles.splice(index, 1);
+        }
+      }
+
+      draw() {
+        if(!ctx) return;
+        ctx.globalAlpha = this.alpha;
+        ctx.fillStyle = `hsl(${this.hue}, 100%, 60%)`;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    function createParticles(x: number, y: number, hue: number) {
+      for (let i = 0; i < 40; i++) {
+        particles.push(new Particle(x, y, hue));
+      }
+    }
+
+    function loop() {
+      if(!ctx) return;
+      // Trail effect
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.1)'; 
+      // Note: We clear with transparent black to leave a slight trail, 
+      // but since the app background is handled by CSS, we use clearRect with alpha mostly
+      ctx.clearRect(0, 0, width, height);
+
+      // Randomly spawn fireworks
+      if (Math.random() < 0.03) {
+        fireworks.push(new Firework());
+      }
+
+      fireworks.forEach((fw, i) => {
+        fw.update(i);
+        fw.draw();
+      });
+
+      particles.forEach((p, i) => {
+        p.update(i);
+        p.draw();
+      });
+
+      requestAnimationFrame(loop);
+    }
+
+    loop();
+
+    const handleResize = () => {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = width;
+      canvas.height = height;
     };
 
-    const { width, height } = dimensions;
-    // Removed Top Strand to prevent covering text
-    const bottomStrand = useMemo(() => generateDrapedStrand(width), [width]);
-    const leftStrand = useMemo(() => generateDrapedStrand(height), [height]); 
-    const rightStrand = useMemo(() => generateDrapedStrand(height), [height]);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
-    const BulbGroup = ({ bulbs }: { bulbs: any[] }) => (
-        <>
-            {bulbs.map((b, i) => (
-                <g key={i} transform={`translate(${b.x}, ${b.y})`}>
-                    {/* Socket */}
-                    <rect x="-3" y="-6" width="6" height="6" fill="#333" rx="1" />
-                    {/* Bulb */}
-                    <circle 
-                        cx="0" cy="4" r="5" 
-                        fill={b.color} 
-                        style={{
-                            animation: `bulb-flash 1.5s infinite alternate ease-in-out`,
-                            animationDelay: `${b.delay}s`,
-                            filter: `drop-shadow(0 0 4px ${b.color})`
-                        }}
-                    />
-                    {/* Highlight */}
-                    <circle cx="-1.5" cy="2.5" r="1.5" fill="rgba(255,255,255,0.6)" />
-                </g>
-            ))}
-        </>
-    );
-
-    // Z-index 40 places lights below the Header (z-50) but above standard content (z-10/0)
-    // This allows lights to be visible on the sides but tucked behind the top header bar if they were to overlap (which they won't since Top is removed)
-    return (
-        <div className="fixed inset-0 z-[40] pointer-events-none">
-            <style>{`
-                @keyframes bulb-flash {
-                    0% { opacity: 0.5; transform: scale(0.9); }
-                    100% { opacity: 1; transform: scale(1.1); filter: drop-shadow(0 0 8px currentColor); }
-                }
-            `}</style>
-
-            {/* Bottom Border */}
-            <div className="absolute bottom-0 left-0 w-full h-[60px] overflow-hidden transform scale-y-[-1]">
-                <svg width="100%" height="100%" preserveAspectRatio="none">
-                    <path d={bottomStrand.pathD} fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" />
-                    <BulbGroup bulbs={bottomStrand.bulbs} />
-                </svg>
-            </div>
-
-            {/* Left Border */}
-            <div className="absolute top-0 left-0 h-full w-[60px] overflow-hidden">
-                <svg width="100%" height="100%" style={{ overflow: 'visible' }}>
-                    <g transform="rotate(90) scale(1, -1)"> 
-                        <path d={leftStrand.pathD} fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" />
-                        <BulbGroup bulbs={leftStrand.bulbs} />
-                    </g>
-                </svg>
-            </div>
-
-            {/* Right Border */}
-            <div className="absolute top-0 right-0 h-full w-[60px] overflow-hidden">
-                <svg width="100%" height="100%" style={{ overflow: 'visible' }}>
-                    <g transform={`translate(60, 0) rotate(90)`}>
-                        <path d={rightStrand.pathD} fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" />
-                        <BulbGroup bulbs={rightStrand.bulbs} />
-                    </g>
-                </svg>
-            </div>
-        </div>
-    );
+  return <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none z-0 opacity-80" />;
 };
 
+
+// --- MAIN COMPONENT ---
 export const SnowEffect: React.FC = () => {
+  // 1. Snowflakes Logic
   const snowflakes = useMemo(() => {
-    return Array.from({ length: 30 }).map((_, i) => ({
+    return Array.from({ length: 60 }).map((_, i) => ({
       id: i,
       left: Math.random() * 100 + '%',
-      animationDuration: Math.random() * 5 + 10 + 's', 
+      animationDuration: Math.random() * 5 + 8 + 's',
       animationDelay: Math.random() * 5 + 's',
-      fontSize: Math.random() * 10 + 10 + 'px', 
-      opacity: Math.random() * 0.3 + 0.3
+      fontSize: Math.random() * 14 + 12 + 'px',
+      opacity: Math.random() * 0.4 + 0.6
     }));
   }, []);
 
+  // 2. LED Lights Logic (Left & Right)
+  const bulbs = useMemo(() => Array.from({ length: 18 }), []);
+
   return (
-    <>
-        <div className="fixed inset-0 pointer-events-none z-[1] overflow-hidden" aria-hidden="true">
-        <style>{`
-            @keyframes snowfall {
-            0% { transform: translateY(-10vh) translateX(0) rotate(0deg); }
-            100% { transform: translateY(110vh) translateX(20px) rotate(360deg); }
-            }
-            .snowflake {
-            position: absolute;
-            top: -30px;
-            color: white;
-            text-shadow: 0 0 6px rgba(255,255,255,0.9);
-            animation-name: snowfall;
-            animation-timing-function: linear;
-            animation-iteration-count: infinite;
-            filter: drop-shadow(0 0 2px rgba(255,255,255,0.5));
-            }
-        `}</style>
-        {snowflakes.map((flake) => (
-            <div
-            key={flake.id}
-            className="snowflake"
-            style={{
-                left: flake.left,
-                animationDuration: flake.animationDuration,
-                animationDelay: flake.animationDelay,
-                fontSize: flake.fontSize,
-                opacity: flake.opacity
-            }}
-            >
-            {Math.random() > 0.6 ? '❄' : '❅'}
-            </div>
-        ))}
-        </div>
+    <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
+      <FireworksCanvas />
+      
+      <style>{`
+        /* Snow Animation */
+        @keyframes snowfall {
+          0% { transform: translateY(-10vh) translateX(0) rotate(0deg); }
+          100% { transform: translateY(110vh) translateX(20px) rotate(360deg); }
+        }
+        .snowflake {
+          position: absolute;
+          top: -30px;
+          color: white;
+          text-shadow: 0 0 6px rgba(255,255,255,0.9);
+          animation-name: snowfall;
+          animation-timing-function: linear;
+          animation-iteration-count: infinite;
+          filter: drop-shadow(0 0 2px rgba(255,255,255,0.5));
+        }
+
+        /* LED Animation */
+        @keyframes glow-flash { 
+          0%, 100% { opacity: 1; filter: brightness(1.5); box-shadow: 0 0 15px 3px currentColor; } 
+          50% { opacity: 0.5; filter: brightness(0.8); box-shadow: 0 0 5px 1px currentColor; } 
+        }
+
+        .led-string {
+          position: fixed;
+          top: -20px;
+          bottom: -20px;
+          width: 40px;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-around;
+          align-items: center;
+          z-index: 40;
+          padding: 10px 0;
+        }
         
-        {/* Decorations */}
-        <ChristmasLights />
-        <FireworksDisplay />
-    </>
+        /* Wire Style */
+        .led-string::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: #2d3748; /* Dark wire color */
+            border-radius: 2px;
+            z-index: -1;
+            box-shadow: inset 1px 1px 2px rgba(0,0,0,0.5);
+        }
+
+        .led-left { left: 10px; }
+        .led-right { right: 10px; }
+
+        .bulb-container {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* The black socket base of the bulb */
+        .socket {
+            width: 12px;
+            height: 10px;
+            background: #1a202c;
+            border-radius: 2px;
+            margin-bottom: -4px; /* overlap with bulb */
+            z-index: 1;
+            box-shadow: inset 0 0 2px rgba(0,0,0,0.8);
+        }
+
+        .bulb {
+          width: 16px;
+          height: 24px;
+          background-color: currentColor;
+          border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; /* Teardropish shape */
+          position: relative;
+          z-index: 2;
+        }
+
+        /* Highlight on the bulb for glass effect */
+        .bulb::after {
+            content: '';
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 4px;
+            height: 4px;
+            background: rgba(255,255,255,0.6);
+            border-radius: 50%;
+        }
+
+        /* Marquee Text Animation */
+        @keyframes scroll-text {
+          0% { transform: translateX(100vw); }
+          100% { transform: translateX(-100%); }
+        }
+        .marquee-container {
+            position: fixed;
+            top: 70px; /* Below header */
+            left: 0;
+            width: 100%;
+            z-index: 30;
+            white-space: nowrap;
+            overflow: hidden;
+            pointer-events: none;
+        }
+        .marquee-content {
+            display: inline-block;
+            animation: scroll-text 35s linear infinite;
+            padding-left: 100vw; /* Start off-screen */
+        }
+        .festive-text {
+            font-family: 'Mountains of Christmas', cursive;
+            font-weight: 700;
+            font-size: 2.5rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 1rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .text-xmas {
+             color: #ef4444; /* Red */
+             -webkit-text-stroke: 1px #fff;
+             margin-right: 20vw; /* Space between phrases */
+        }
+        .text-newyear {
+             color: #fbbf24; /* Amber/Gold */
+             -webkit-text-stroke: 1px #fff;
+             text-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
+        }
+      `}</style>
+
+      {/* --- SNOW --- */}
+      {snowflakes.map((flake) => (
+        <div
+          key={flake.id}
+          className="snowflake"
+          style={{
+            left: flake.left,
+            animationDuration: flake.animationDuration,
+            animationDelay: flake.animationDelay,
+            fontSize: flake.fontSize,
+            opacity: flake.opacity
+          }}
+        >
+          {Math.random() > 0.6 ? '❄' : '❅'}
+        </div>
+      ))}
+
+      {/* --- LED LIGHTS (LEFT) --- */}
+      <div className="led-string led-left">
+        {bulbs.map((_, i) => {
+            const colors = ['#ff0000', '#00ff00', '#ffd700', '#00ffff', '#ff00ff']; // Vibrant Neon Colors
+            const color = colors[i % colors.length];
+            return (
+                <div key={`l-${i}`} className="bulb-container">
+                    <div className="socket"></div>
+                    <div 
+                        className="bulb" 
+                        style={{ 
+                            color, 
+                            animation: `glow-flash ${1.5 + Math.random()}s infinite ease-in-out alternate` 
+                        }} 
+                    />
+                </div>
+            );
+        })}
+      </div>
+
+      {/* --- LED LIGHTS (RIGHT) --- */}
+      <div className="led-string led-right">
+        {bulbs.map((_, i) => {
+            const colors = ['#ff0000', '#00ff00', '#ffd700', '#00ffff', '#ff00ff'];
+            const color = colors[(i + 2) % colors.length];
+            return (
+                <div key={`r-${i}`} className="bulb-container">
+                    <div className="socket"></div>
+                    <div 
+                        className="bulb" 
+                        style={{ 
+                            color, 
+                            animation: `glow-flash ${1.5 + Math.random()}s infinite ease-in-out alternate-reverse` 
+                        }} 
+                    />
+                </div>
+            );
+        })}
+      </div>
+
+      {/* --- SCROLLING TEXT --- */}
+      <div className="marquee-container">
+          <div className="marquee-content">
+              <span className="festive-text text-xmas">
+                  🎄 MERRY CHRISTMAS 🎄
+              </span>
+              <span className="festive-text text-newyear">
+                  🎆 HAPPY NEW YEAR 2026 🎆
+              </span>
+          </div>
+      </div>
+
+    </div>
   );
 };
