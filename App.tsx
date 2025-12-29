@@ -16,7 +16,7 @@ import {
     LayoutDashboardIcon, FileTextIcon
 } from './components/Icons';
 import Tracker from './components/Tracker';
-import { SnowEffect } from './components/SnowEffect';
+import { TetEffect } from './components/TetEffect';
 
 const isElectron = navigator.userAgent.toLowerCase().includes('electron');
 const ipcRenderer = isElectron && (window as any).require ? (window as any).require('electron').ipcRenderer : null;
@@ -41,10 +41,10 @@ const Activation: React.FC<ActivationProps> = ({ machineId, onActivate }) => {
   };
   return (
     <div className="text-gray-800 min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-      <SnowEffect />
+      <TetEffect />
       <div className="glass-card rounded-2xl p-8 shadow-2xl max-w-md w-full border-t-4 border-red-600 relative z-10">
-        <div className="absolute -top-10 -right-8 text-6xl animate-bounce" style={{ animationDuration: '3s' }}>🎅</div>
-        <h1 className="text-4xl font-bold mb-4 text-center text-red-800 font-christmas">🎄 Kích hoạt ứng dụng</h1>
+        <div className="absolute -top-10 -right-8 text-6xl animate-bounce" style={{ animationDuration: '3s' }}>🧧</div>
+        <h1 className="text-4xl font-bold mb-4 text-center text-red-800 font-tet">Kích hoạt ứng dụng</h1>
         <p className="mb-4 text-sm text-gray-700">Mã máy: <code className="bg-red-100 p-1 rounded select-all text-red-800 font-bold border border-red-200">{machineId}</code></p>
         <form onSubmit={handleSubmit} className="space-y-4">
             <textarea value={key} onChange={e => setKey(e.target.value)} rows={3} style={{color: '#ffffff'}} className="w-full p-3 border border-red-200 rounded-lg bg-red-950 text-white placeholder-red-300 focus:ring-2 focus:ring-red-500" placeholder="Nhập mã kích hoạt..." required />
@@ -68,10 +68,10 @@ const ApiKeyManagerScreen: React.FC<ApiKeyManagerProps> = ({ apiKeys, onKeySelec
     const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); onKeyAdd({ id: crypto.randomUUID(), name, value: val }); };
     return (
         <div className="min-h-screen flex items-center justify-center p-4 relative">
-            <SnowEffect />
+            <TetEffect />
             <div className="glass-card p-8 rounded-2xl max-w-2xl w-full border border-red-100 shadow-xl relative z-10">
-                <div className="absolute -top-6 -left-6 text-5xl rotate-12">🎁</div>
-                <h1 className="text-3xl font-bold mb-6 text-center text-red-800 font-christmas">Quản lý API Keys 🔑</h1>
+                <div className="absolute -top-6 -left-6 text-5xl rotate-12">💰</div>
+                <h1 className="text-3xl font-bold mb-6 text-center text-red-800 font-tet">Quản lý API Keys 🔑</h1>
                 <div className="space-y-2 mb-6 max-h-60 overflow-y-auto custom-scrollbar">
                     {apiKeys.map(k => (
                         <div key={k.id} className="flex justify-between items-center p-3 bg-white border border-red-100 rounded-lg shadow-sm hover:shadow-md transition">
@@ -84,7 +84,7 @@ const ApiKeyManagerScreen: React.FC<ApiKeyManagerProps> = ({ apiKeys, onKeySelec
                     ))}
                 </div>
                 <form onSubmit={handleSubmit} className="space-y-3 pt-4 border-t border-red-100">
-                    <input value={name} onChange={e => setName(e.target.value)} style={{color: '#ffffff'}} placeholder="Tên Key (VD: Key Giáng Sinh)" className="w-full p-2 border border-red-200 rounded bg-red-950 text-white placeholder-red-300" required />
+                    <input value={name} onChange={e => setName(e.target.value)} style={{color: '#ffffff'}} placeholder="Tên Key (VD: Key Tết 2025)" className="w-full p-2 border border-red-200 rounded bg-red-950 text-white placeholder-red-300" required />
                     <input value={val} onChange={e => setVal(e.target.value)} style={{color: '#ffffff'}} placeholder="API Key Value" type="password" className="w-full p-2 border border-red-200 rounded bg-red-950 text-white placeholder-red-300" required />
                     <button className="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg font-bold shadow-md transition">Thêm Key Mới</button>
                 </form>
@@ -123,7 +123,7 @@ const App: React.FC = () => {
         duration: 200,
         speed: 1.0,
         mode: 'character',
-        month: '12',
+        month: '01',
         loopType: 'person',
         characterDesc: '',
         characterImage: null
@@ -306,7 +306,7 @@ const App: React.FC = () => {
 
     const suggestScript = async () => {
         if (!activeApiKey) return setFeedback({type: 'error', message: 'Vui lòng chọn API Key'});
-        setLoadingText("AI đang viết gợi ý Giáng Sinh...");
+        setLoadingText("AI đang viết gợi ý Tết...");
         setIsLoading(true);
         setFeedback(null);
 
@@ -315,17 +315,17 @@ const App: React.FC = () => {
             let extraInstruction = "";
             if (genTab === 'starbucks') extraInstruction = "Tập trung vào không gian quán Starbucks, chi tiết ly cà phê có logo, barista pha chế, và sản phẩm mới.";
 
-            const basePrompt = `Bạn là một đạo diễn sáng tạo chuyên về chủ đề Giáng Sinh và Lễ Hội. Dựa trên ý tưởng cơ bản: "${inputs.basicIdea || 'Chủ đề video'}", hãy phân tích và đưa ra gợi ý ngắn gọn.
+            const basePrompt = `Bạn là một đạo diễn sáng tạo chuyên về chủ đề Tết Nguyên Đán và Lễ Hội. Dựa trên ý tưởng cơ bản: "${inputs.basicIdea || 'Chủ đề video'}", hãy phân tích và đưa ra gợi ý ngắn gọn.
             ${extraInstruction}
             
             YÊU CẦU OUTPUT (Tiếng Việt):
             Hãy trả về kết quả theo đúng định dạng sau (không viết dài dòng thành bài văn):
 
-            Chủ Đề: [Tên chủ đề ngắn gọn, mang không khí lễ hội]
+            Chủ Đề: [Tên chủ đề ngắn gọn, mang không khí Tết Á Đông]
             Ý Tưởng Cảnh Quay: 
             - [Ý tưởng 1: Mô tả ngắn gọn cảnh quay]
             - [Ý tưởng 2: Mô tả ngắn gọn cảnh quay]
-            Chi tiết Kỹ thuật/Màu sắc: [Mô tả tông màu (Vàng ấm, Đỏ rượu, Xanh thông...), ánh sáng, chuyển động camera phù hợp]
+            Chi tiết Kỹ thuật/Màu sắc: [Mô tả tông màu (Đỏ may mắn, Vàng hoa mai, Hồng đào...), ánh sáng, chuyển động camera phù hợp]
 
             Lưu ý: Phong cách ${inputs.style}. Thị trường mục tiêu: ${inputs.market}.`;
 
@@ -346,7 +346,7 @@ const App: React.FC = () => {
         if (!inputs.detailedIdea && !inputs.basicIdea) return setFeedback({type: 'error', message: 'Vui lòng nhập ý tưởng'});
         
         setIsLoading(true);
-        setLoadingText("AI đang sáng tạo không khí lễ hội...");
+        setLoadingText("AI đang sáng tạo không khí Tết...");
         setFeedback(null);
         setGeneratedPrompts([]);
 
@@ -432,7 +432,7 @@ const App: React.FC = () => {
                 }
 
                 const prompt = `
-                    You are a video director specializing in Christmas/Holiday themes. 
+                    You are a video director specializing in Lunar New Year (Tet) themes. 
                     Idea/Direction: "${ideaToUse}".
                     Style: ${inputs.style}.
                     ${genTab === 'seasonal' ? `Month: ${inputs.month}` : ''}
@@ -593,14 +593,14 @@ const App: React.FC = () => {
         }
     };
 
-    if (!configLoaded) return <div className="min-h-screen flex items-center justify-center text-red-500 bg-transparent"><LoaderIcon /> <span className="ml-2 font-bold">Đang tải dữ liệu Giáng Sinh...</span></div>;
+    if (!configLoaded) return <div className="min-h-screen flex items-center justify-center text-red-500 bg-transparent"><LoaderIcon /> <span className="ml-2 font-bold">Đang tải dữ liệu Tết...</span></div>;
     if (!isActivated) return <Activation machineId={machineId} onActivate={async (key) => { saveConfig({ licenseKey: key }); setIsActivated(true); return true; }} />;
     if (!activeApiKey) return <ApiKeyManagerScreen apiKeys={apiKeys} onKeyAdd={(k) => { const newKeys=[...apiKeys, k]; setApiKeys(newKeys); saveConfig({ apiKeysEncrypted: encrypt(JSON.stringify(newKeys)) }); }} onKeyDelete={(id) => { const newKeys=apiKeys.filter(k=>k.id!==id); setApiKeys(newKeys); saveConfig({ apiKeysEncrypted: encrypt(JSON.stringify(newKeys)) }); }} onKeySelect={(k) => { setActiveApiKey(k); saveConfig({ activeApiKeyId: k.id }); }} />;
 
     return (
         <div className="min-h-screen relative pl-[26px] pr-[26px]">
-            <SnowEffect />
-            {/* Update Available Modal - Showing Release Notes */}
+            <TetEffect />
+            {/* Update Available Modal */}
             {updateAvailableModal && (
                 <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
                     <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 text-center animate-bounce-in border-t-4 border-red-500 relative flex flex-col max-h-[90vh]">
@@ -608,7 +608,6 @@ const App: React.FC = () => {
                             🎁 Có bản cập nhật mới! <span className="text-red-600 bg-red-50 px-2 py-0.5 rounded text-sm">v{updateAvailableModal.version}</span>
                         </h3>
                         
-                        {/* Release Notes Area */}
                         <div className="flex-1 overflow-y-auto custom-scrollbar text-left bg-gray-50 p-4 rounded-xl border border-gray-100 mb-6 text-sm text-gray-600">
                              <div className="font-bold text-gray-700 mb-2 uppercase text-xs tracking-wider">Tính năng mới:</div>
                              {updateAvailableModal.releaseNotes ? (
@@ -634,7 +633,7 @@ const App: React.FC = () => {
                 </div>
             )}
 
-            {/* Feedback Toast - Uses feedback, XCircleIcon */}
+            {/* Feedback Toast */}
             {feedback && (
                 <div className={`fixed top-24 right-4 z-[90] p-4 rounded-xl shadow-2xl border flex items-center gap-3 animate-fade-in-left ${feedback.type === 'error' ? 'bg-red-50 border-red-200 text-red-800' : 'bg-green-50 border-green-200 text-green-800'}`}>
                     {feedback.type === 'error' ? <XCircleIcon className="w-6 h-6"/> : <span className="text-xl font-bold">✓</span>}
@@ -647,7 +646,7 @@ const App: React.FC = () => {
                 <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
                     <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-8 text-center animate-fade-in-up border-t-4 border-red-500">
                          <div className="mb-4 text-red-600 flex justify-center"><LoaderIcon /></div>
-                        <h3 className="text-xl font-bold text-gray-900 mb-2">Đang tải cập nhật Giáng Sinh...</h3>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">Đang tải cập nhật...</h3>
                         <div className="w-full bg-gray-200 rounded-full h-4 mb-2 overflow-hidden">
                             <div className="bg-red-600 h-4 rounded-full transition-all duration-300 ease-out" style={{ width: `${downloadProgress}%` }}></div>
                         </div>
@@ -663,20 +662,21 @@ const App: React.FC = () => {
                 </div>
             )}
 
-             {/* Header - Christmas Style (Redder) */}
-             <header className="bg-white/95 backdrop-blur-md border-b-2 border-red-200 sticky top-0 z-50 shadow-sm relative overflow-hidden">
+             {/* Header - Tet Style (Red/Gold) */}
+             <header className="bg-white/95 backdrop-blur-md border-b-2 border-yellow-400 sticky top-0 z-50 shadow-sm relative overflow-hidden">
                  
                  <div className="mx-auto px-4 sm:px-6 lg:px-8 max-w-[98%] w-full relative z-10">
                      <div className="flex justify-between h-16 items-center">
                          <div className="flex items-center gap-8">
-                             <h1 className="text-3xl font-christmas font-bold text-red-800 tracking-tight flex items-center gap-2 drop-shadow-sm">
-                                 <span>🎅</span> Trọng - Tool Auto Flow
+                             <h1 className="text-3xl font-tet font-bold text-red-800 tracking-tight flex items-center gap-2 drop-shadow-sm">
+                                 <span>🧧</span> Trọng - Tool Auto Flow
                              </h1>
                              <div className="hidden md:flex bg-red-50 p-1 rounded-xl border border-red-100 shadow-inner">
                                  <button onClick={() => setActiveTab('tracker')} className={`px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 flex items-center gap-2 ${activeTab === 'tracker' ? 'bg-red-700 text-white shadow-md' : 'text-gray-500 hover:text-red-700 hover:bg-red-100'}`}>
                                     <LayoutDashboardIcon className="w-4 h-4" /> Bảng Điều Khiển
                                  </button>
-                                 <button onClick={() => setActiveTab('generator')} className={`px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 flex items-center gap-2 ${activeTab === 'generator' ? 'bg-amber-600 text-white shadow-md' : 'text-gray-500 hover:text-amber-700 hover:bg-amber-100'}`}>
+                                 {/* Generator Tabs are now treated as "Tools" in the UI context */}
+                                 <button onClick={() => setActiveTab('generator')} className={`px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 flex items-center gap-2 ${activeTab === 'generator' ? 'bg-yellow-600 text-white shadow-md' : 'text-gray-500 hover:text-yellow-700 hover:bg-yellow-100'}`}>
                                     <FileTextIcon className="w-4 h-4" /> Tạo Kịch Bản
                                  </button>
                                  <button onClick={() => setActiveTab('image-generator')} className={`px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 flex items-center gap-2 ${activeTab === 'image-generator' ? 'bg-green-700 text-white shadow-md' : 'text-gray-500 hover:text-green-700 hover:bg-green-100'}`}>
@@ -688,7 +688,7 @@ const App: React.FC = () => {
                              <button onClick={handleCheckUpdate} className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1 bg-white px-2 py-1 rounded border border-red-100 shadow-sm hover:shadow">
                                  <InfoIcon className={`w-3 h-3 ${updateStatus === 'checking' ? 'animate-spin' : ''}`} /> v{appVersion}
                              </button>
-                             {activeApiKey && <span className="text-xs bg-red-100 text-red-800 border border-red-200 px-2 py-1 rounded-lg font-bold flex items-center gap-1 shadow-sm"><KeyIcon className="w-3 h-3"/> {activeApiKey.name}</span>}
+                             {activeApiKey && <span className="text-xs bg-yellow-100 text-yellow-800 border border-yellow-200 px-2 py-1 rounded-lg font-bold flex items-center gap-1 shadow-sm"><KeyIcon className="w-3 h-3"/> {activeApiKey.name}</span>}
                              <button onClick={() => setActiveApiKey(null)} className="text-gray-400 hover:text-red-500"><CogIcon className="w-5 h-5"/></button>
                          </div>
                      </div>
@@ -696,7 +696,11 @@ const App: React.FC = () => {
              </header>
 
              <main className={`mx-auto p-4 sm:p-6 lg:p-8 ${activeTab === 'tracker' ? 'max-w-[98%] w-full' : 'max-w-6xl'} relative z-10`}>
-                {activeTab === 'generator' && (
+                
+                {/* --- GENERATOR TAB --- 
+                    Using 'display: block/none' instead of conditional rendering to preserve state 
+                */}
+                <div style={{ display: activeTab === 'generator' ? 'block' : 'none' }}>
                     <div className="space-y-6">
                         
                         {/* Tab Navigation - Festive */}
@@ -748,24 +752,24 @@ const App: React.FC = () => {
                             </div>
                         )}
 
-                        {/* Collapsible Config Card - Christmas Style */}
+                        {/* Collapsible Config Card - Tet Style */}
                         <div className="glass-card bg-white transition-all duration-300 relative overflow-hidden shadow-sm border border-red-200 rounded-2xl">
                             
                             {/* Decorative Corner Ribbon */}
                             <div className="absolute -top-3 -right-12 bg-red-700 text-white text-[10px] font-bold px-10 py-1 rotate-45 shadow-md z-10 hidden md:block border-b border-white/20">
-                                MERRY XMAS
+                                CHÚC MỪNG NĂM MỚI
                             </div>
                             
-                            {/* Decorative Santa */}
+                            {/* Decorative Flower */}
                             <div className="absolute top-2 right-12 z-0 hidden md:block opacity-20 pointer-events-none transform rotate-12">
-                                <span className="text-8xl">🎅</span>
+                                <span className="text-8xl">🌸</span>
                             </div>
 
                             <div className="p-6 relative z-10">
                                 <div className="flex justify-between items-center mb-6 cursor-pointer select-none" onClick={() => setIsConfigCollapsed(!isConfigCollapsed)}>
                                     <div className="flex items-center gap-2">
                                         <div className="w-1 h-6 bg-red-600 rounded-full"></div>
-                                        <h3 className="text-lg font-bold text-red-900 font-christmas tracking-wider text-xl">CẤU HÌNH KỊCH BẢN</h3>
+                                        <h3 className="text-lg font-bold text-red-900 font-tet tracking-wider text-xl">CẤU HÌNH KỊCH BẢN</h3>
                                     </div>
                                     <div className={`p-2 rounded-full bg-red-50 hover:bg-red-100 transition-transform duration-300 ${isConfigCollapsed ? 'rotate-180' : ''}`}>
                                         <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7"></path></svg>
@@ -779,7 +783,7 @@ const App: React.FC = () => {
                                         <div className="flex flex-col h-full">
                                             <div className="flex justify-between mb-2 items-center">
                                                 <label className="text-xs font-extrabold text-gray-700 uppercase flex items-center gap-1">
-                                                    <span className="text-red-600">🎁</span> 1. Ý tưởng cơ bản
+                                                    <span className="text-red-600">🧧</span> 1. Ý tưởng cơ bản
                                                 </label>
                                                 {genTab === 'trending' && <button onClick={() => handleInputChange('basicIdea', 'Top Catholic Trend: Mùa Chay')} className="text-[9px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold hover:bg-amber-200 transition">🔥 MV Theo Trend</button>}
                                             </div>
@@ -787,7 +791,7 @@ const App: React.FC = () => {
                                                 value={inputs.basicIdea} 
                                                 onChange={e => handleInputChange('basicIdea', e.target.value)} 
                                                 className="w-full h-32 p-4 bg-white border border-gray-300 rounded-xl text-sm text-gray-700 resize-none focus:ring-2 focus:ring-red-200 focus:border-red-400 outline-none transition shadow-sm placeholder-gray-400" 
-                                                placeholder="Ví dụ: Giáng sinh an lành tại nhà thờ Đức Bà..." 
+                                                placeholder="Ví dụ: Tết sum vầy, gia đình quây quần bên nồi bánh chưng..." 
                                             />
                                         </div>
 
@@ -804,7 +808,7 @@ const App: React.FC = () => {
                                                 value={inputs.detailedIdea} 
                                                 onChange={e => handleInputChange('detailedIdea', e.target.value)} 
                                                 className="w-full h-32 p-4 bg-white border border-gray-300 rounded-xl text-sm text-gray-700 resize-none focus:ring-2 focus:ring-red-200 focus:border-red-400 outline-none transition shadow-sm placeholder-gray-400" 
-                                                placeholder="AI sẽ mô tả chi tiết không khí và bối cảnh tại đây..." 
+                                                placeholder="AI sẽ mô tả chi tiết không khí Tết và bối cảnh tại đây..." 
                                             />
                                         </div>
                                     </div>
@@ -975,9 +979,12 @@ const App: React.FC = () => {
                             </div>
                         )}
                     </div>
-                )}
+                </div>
                 
-                {activeTab === 'image-generator' && (
+                {/* --- IMAGE GENERATOR TAB --- 
+                    Using 'display: block/none' 
+                */}
+                <div style={{ display: activeTab === 'image-generator' ? 'block' : 'none' }}>
                     <div className="space-y-6">
                          <div className="glass-card bg-white p-6 rounded-2xl shadow-sm border border-red-100">
                             <div className="flex justify-between items-center mb-4">
@@ -1048,11 +1055,14 @@ const App: React.FC = () => {
                             </div>
                         )}
                     </div>
-                )}
+                </div>
                 
-                {activeTab === 'tracker' && (
+                {/* --- TRACKER TAB (DASHBOARD) --- 
+                    Always mounted, visually toggled for performance/state preservation 
+                */}
+                <div style={{ display: activeTab === 'tracker' ? 'block' : 'none' }}>
                     <Tracker />
-                )}
+                </div>
              </main>
         </div>
     );

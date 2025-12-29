@@ -586,7 +586,7 @@ const Tracker: React.FC = () => {
                     relative rounded-lg overflow-hidden border-2 transition-all cursor-pointer group flex items-center justify-center
                     ${hasImage 
                         ? 'border-transparent hover:shadow-lg' 
-                        : 'border-dashed border-red-200 hover:border-amber-400 bg-red-50 hover:bg-amber-50'
+                        : 'border-dashed border-red-200 hover:border-yellow-400 bg-red-50 hover:bg-yellow-50'
                     }
                     ${job.typeVideo === 'I2V' || job.typeVideo === 'IMG' ? 'w-24 h-24' : 'w-20 h-20'}
                 `}
@@ -619,7 +619,7 @@ const Tracker: React.FC = () => {
                         </div>
                     </>
                 ) : (
-                    <PlusIcon className="w-5 h-5 text-red-300 group-hover:text-amber-500" />
+                    <PlusIcon className="w-5 h-5 text-red-300 group-hover:text-yellow-500" />
                 )}
                 
                 {/* Slot Label */}
@@ -653,8 +653,8 @@ const Tracker: React.FC = () => {
     if (files.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center h-[60vh] text-center p-10 bg-white/90 rounded-3xl border-4 border-dashed border-red-200 shadow-xl">
-                <div className="text-6xl mb-4">🎄</div>
-                <h3 className="text-2xl font-bold text-red-800 mb-2 font-christmas">Chưa theo dõi dự án nào</h3>
+                <div className="text-6xl mb-4">🧧</div>
+                <h3 className="text-2xl font-bold text-red-800 mb-2 font-tet">Chưa theo dõi dự án nào</h3>
                 <p className="text-gray-500 mb-8 max-w-md">Hãy mở file Excel kịch bản hoặc quét thư mục dự án để bắt đầu quy trình tự động hóa.</p>
                 <div className="flex gap-4">
                     <button onClick={handleOpenFile} className="btn-primary px-8 py-4 rounded-2xl font-bold text-lg shadow-xl hover:scale-105 transition flex items-center gap-3 bg-red-600 hover:bg-red-700 text-white">

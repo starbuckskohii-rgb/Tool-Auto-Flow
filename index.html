@@ -2,24 +2,25 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPjxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwZWE1ZTk7c3RvcC1vcGFjaXR5OjEiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMyNTYzZWI7c3RvcC1vcGFjaXR5OjEiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjEwMCIgZmlsbD0idXJsKCNnKSIvPjxwYXRoIGQ9Ik0xNjAgMTIwSDM1MlYxOTBIMjk2VjM5MkgyMTZWMTkwSDE2MFYxMjBaIiBmaWxsPSJ3aGl0ZSIvPjwvc3ZnPg==" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPjxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNmZmQwMDA7c3RvcC1vcGFjaXR5OjEiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNmZjAwMDA7c3RvcC1vcGFjaXR5OjEiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjEwMCIgZmlsbD0idXJsKCNnKSIvPjxwYXRoIGQ9Ik0xNjAgMTIwSDM1MlYxOTBIMjk2VjM5MkgyMTZWMTkwSDE2MFYxMjBaIiBmaWxsPSJ3aGl0ZSIvPjwvc3ZnPg==" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Trọng Tool Auto Flow</title>
+    <title>Trọng Tool Auto Flow - Happy New Year</title>
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#881337">
+    <meta name="theme-color" content="#991b1b">
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Mountains+of+Christmas:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Charm:wght@400;700&family=Great+Vibes&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
     <style>
         :root {
-            /* Christmas Night / Deep Burgundy Theme for High Contrast Snow */
-            --bg-start: #9f1239; /* Rose 800 */
-            --bg-end: #4a0404;   /* Deepest Red */
-            --card-bg: rgba(255, 255, 255, 0.96); /* High opacity white for readability */
+            /* Tet Theme: Deep Red & Gold */
+            --bg-start: #7f1d1d; /* Red 900 */
+            --bg-end: #450a0a;   /* Red 950 */
+            --card-bg: rgba(255, 255, 240, 0.98); /* Floral White, slightly warm */
             
-            --text-primary: #4a0404;
-            --text-secondary: #881337;
+            --text-primary: #450a0a;
+            --text-secondary: #b45309; /* Amber 700 */
             
-            --accent-red: #e11d48;
+            --accent-red: #dc2626;
+            --accent-gold: #fbbf24;
             --shadow-color: rgba(0, 0, 0, 0.3);
         }
         body {
@@ -30,20 +31,24 @@
             overflow: hidden;
         }
         
-        .font-christmas {
-            font-family: 'Mountains of Christmas', cursive;
+        .font-tet {
+            font-family: 'Charm', cursive; /* Use Charm for Tet headers too */
+        }
+        
+        .font-calligraphy {
+            font-family: 'Great Vibes', cursive;
         }
 
-        /* Custom Scrollbar - Adapted for dark background */
+        /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
-        ::-webkit-scrollbar-thumb { background: #fb7185; border-radius: 4px; border: 2px solid rgba(0,0,0,0.1); }
-        ::-webkit-scrollbar-thumb:hover { background: #f43f5e; }
+        ::-webkit-scrollbar-thumb { background: #fbbf24; border-radius: 4px; border: 2px solid rgba(0,0,0,0.1); }
+        ::-webkit-scrollbar-thumb:hover { background: #f59e0b; }
         
         .glassmorphism {
             background: var(--card-bg);
             backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 215, 0, 0.3);
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
         }
         
@@ -51,19 +56,19 @@
             background: var(--card-bg);
             border-radius: 1rem;
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            border: 1px solid rgba(251, 191, 36, 0.4); /* Gold border */
         }
 
         .btn-primary {
-            background-image: linear-gradient(135deg, #e11d48 0%, #9f1239 100%);
+            background-image: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
             transition: all 0.3s ease;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-            color: white;
-            border: 1px solid rgba(255,255,255,0.2);
+            color: #fffbeb; /* Warm white */
+            border: 1px solid rgba(251, 191, 36, 0.4);
         }
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(225, 29, 72, 0.5);
+            box-shadow: 0 6px 20px rgba(220, 38, 38, 0.5);
             filter: brightness(1.1);
         }
 
@@ -72,7 +77,7 @@
             -webkit-appearance: none;
             width: 100%;
             height: 6px;
-            background: #fda4af;
+            background: #fcd34d;
             border-radius: 3px;
             outline: none;
         }
@@ -93,7 +98,7 @@
 
         /* Loading Animation */
         .loader-ring { display: inline-block; position: relative; width: 64px; height: 64px; }
-        .loader-ring div { box-sizing: border-box; display: block; position: absolute; width: 50px; height: 50px; margin: 8px; border: 4px solid #fff; border-radius: 50%; animation: loader-ring 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite; border-color: #fff transparent transparent transparent; }
+        .loader-ring div { box-sizing: border-box; display: block; position: absolute; width: 50px; height: 50px; margin: 8px; border: 4px solid #fcd34d; border-radius: 50%; animation: loader-ring 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite; border-color: #fcd34d transparent transparent transparent; }
         .loader-ring div:nth-child(1) { animation-delay: -0.45s; }
         .loader-ring div:nth-child(2) { animation-delay: -0.3s; }
         .loader-ring div:nth-child(3) { animation-delay: -0.15s; }
@@ -106,9 +111,9 @@
         .animate-fade-in-up { animation: fadeInUp 0.5s ease-out; }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        .text-sweet-red { color: #9f1239; }
-        .bg-sweet-red { background-color: #fff1f2; }
-        .border-sweet-red { border-color: #fecdd3; }
+        .text-tet-red { color: #b91c1c; }
+        .bg-tet-gold { background-color: #fffbeb; }
+        .border-tet-gold { border-color: #fcd34d; }
     </style>
 <script type="importmap">
 {
