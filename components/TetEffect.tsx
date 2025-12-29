@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useMemo } from 'react';
+import React, { useEffect, useRef } from 'react';
 
 // --- FALLING FLOWERS LOGIC (CANVAS) ---
 const FlowerCanvas: React.FC = () => {
