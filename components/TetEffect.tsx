@@ -119,7 +119,8 @@ const FlowerCanvas: React.FC = () => {
 // --- MAIN COMPONENT ---
 export const TetEffect: React.FC = () => {
   return (
-    <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
+    // REMOVED 'z-0' class here to allow children z-index to break out relative to siblings of this container
+    <div className="fixed inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
       <FlowerCanvas />
       
       <style>{`
@@ -132,7 +133,7 @@ export const TetEffect: React.FC = () => {
         .ornament-container {
           position: fixed;
           top: -10px; /* Hide top of string */
-          z-index: 60; /* Above Header */
+          z-index: 60; /* Above Header (z-50) */
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -219,7 +220,7 @@ export const TetEffect: React.FC = () => {
             top: 85px; /* Below header */
             left: 0;
             width: 100%;
-            z-index: 5; /* UPDATED: Lower z-index to stay behind main content (z-10) but above background */
+            z-index: 40; /* UPDATED: Higher z-index to stay ABOVE main content (z-10) but below header (z-50) */
             white-space: nowrap;
             overflow: hidden;
             pointer-events: none;

@@ -1,6 +1,6 @@
 {
   "name": "tool-auto-flow",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Tool kịch bản auto flow",
   "main": "electron.js",
   "author": "StarbucksKohii",
