@@ -132,13 +132,14 @@ export const TetEffect: React.FC = () => {
         .ornament-container {
           position: fixed;
           top: -10px; /* Hide top of string */
-          z-index: 60; /* Above Header (z-50) to ensure visibility */
+          z-index: 60; /* Above Header */
           display: flex;
           flex-direction: column;
           align-items: center;
           transform-origin: top center;
           animation: swing 4s infinite ease-in-out alternate;
           filter: drop-shadow(0 5px 10px rgba(0,0,0,0.3));
+          pointer-events: none;
         }
 
         .ornament-string {
@@ -218,7 +219,7 @@ export const TetEffect: React.FC = () => {
             top: 85px; /* Below header */
             left: 0;
             width: 100%;
-            z-index: 30;
+            z-index: 5; /* UPDATED: Lower z-index to stay behind main content (z-10) but above background */
             white-space: nowrap;
             overflow: hidden;
             pointer-events: none;
