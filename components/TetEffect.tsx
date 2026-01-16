@@ -133,7 +133,7 @@ export const TetEffect: React.FC = () => {
         .ornament-container {
           position: fixed;
           top: -10px; /* Hide top of string */
-          z-index: 60; /* Above Header (z-50) */
+          z-index: 9999; /* UPDATED: Maximum z-index to stay on top of EVERYTHING */
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -217,15 +217,18 @@ export const TetEffect: React.FC = () => {
         }
         .marquee-container {
             position: fixed;
-            top: 85px; /* Below header */
+            top: 64px; /* UPDATED: Directly under the header (h-16 = 64px) */
             left: 0;
             width: 100%;
-            z-index: 40; /* UPDATED: Higher z-index to stay ABOVE main content (z-10) but below header (z-50) */
+            height: 32px; /* UPDATED: Narrower height */
+            z-index: 40; 
             white-space: nowrap;
             overflow: hidden;
             pointer-events: none;
-            background: linear-gradient(90deg, transparent 0%, rgba(69, 10, 10, 0.3) 20%, rgba(69, 10, 10, 0.3) 80%, transparent 100%);
-            padding: 5px 0;
+            /* UPDATED: Darker gradient, more compact */
+            background: linear-gradient(90deg, transparent 0%, rgba(69, 10, 10, 0.6) 20%, rgba(69, 10, 10, 0.6) 80%, transparent 100%);
+            display: flex;
+            align-items: center;
         }
         .marquee-content {
             display: inline-block;
@@ -235,11 +238,11 @@ export const TetEffect: React.FC = () => {
         .festive-text {
             font-family: 'Charm', cursive;
             font-weight: 700;
-            font-size: 2.8rem;
+            font-size: 1.25rem; /* UPDATED: Smaller font size */
             display: inline-flex;
             align-items: center;
             gap: 1rem;
-            text-shadow: 2px 2px 0px #7f1d1d, -1px -1px 0 #7f1d1d, 1px -1px 0 #7f1d1d, -1px 1px 0 #7f1d1d, 1px 1px 0 #7f1d1d;
+            text-shadow: 1px 1px 0px #7f1d1d;
         }
         .text-tet-msg {
              color: #fbbf24;
