@@ -109,6 +109,12 @@ function incrementPromptCount() {
     return stats.promptCount;
 }
 
+let currentScanMode = 1;
+
+ipcMain.on('set-scan-mode', (event, mode) => {
+    currentScanMode = mode;
+});
+
 // Helper to get files strictly from specific directories (Non-recursive)
 function getFilesFromDirectories(dirs) {
     let files = [];
@@ -136,8 +142,13 @@ function scanVideosInternal(jobs, excelFilePath) {
     const rootDir = path.dirname(excelFilePath);
     const excelNameNoExt = path.basename(excelFilePath, '.xlsx');
     const subDir = path.join(rootDir, excelNameNoExt);
+    const outputDir = path.join(rootDir, 'Output', excelNameNoExt);
     
-    const targetDirs = [rootDir, subDir];
+    let targetDirs = [rootDir, subDir];
+    if (currentScanMode === 2) {
+        targetDirs = [rootDir, outputDir, subDir];
+    }
+    
     const mediaFiles = getFilesFromDirectories(targetDirs);
     
     return jobs.map(job => {

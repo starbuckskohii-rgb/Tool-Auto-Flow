@@ -142,7 +142,7 @@ async function scanVideosInternalAsync(jobs, excelFilePath) {
     const rootDir = path.dirname(excelFilePath);
     const excelNameNoExt = path.basename(excelFilePath, '.xlsx');
     const subDir = path.join(rootDir, excelNameNoExt);
-    const outputDir = path.join(rootDir, 'Output');
+    const outputDir = path.join(rootDir, 'Output', excelNameNoExt);
     
     let targetDirs = [rootDir, subDir];
     if (currentScanMode === 2) {
