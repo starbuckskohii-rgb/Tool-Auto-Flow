@@ -111,6 +111,12 @@ function incrementPromptCount() {
     return stats.promptCount;
 }
 
+let currentScanMode = 1;
+
+ipcMain.on('set-scan-mode', (event, mode) => {
+    currentScanMode = mode;
+});
+
 // Helper to get files strictly from specific directories (Async & Non-recursive)
 async function getFilesFromDirectoriesAsync(dirs) {
     let files = [];
@@ -136,8 +142,13 @@ async function scanVideosInternalAsync(jobs, excelFilePath) {
     const rootDir = path.dirname(excelFilePath);
     const excelNameNoExt = path.basename(excelFilePath, '.xlsx');
     const subDir = path.join(rootDir, excelNameNoExt);
+    const outputDir = path.join(rootDir, 'Output');
     
-    const targetDirs = [rootDir, subDir];
+    let targetDirs = [rootDir, subDir];
+    if (currentScanMode === 2) {
+        targetDirs = [rootDir, outputDir, subDir];
+    }
+    
     const mediaFiles = await getFilesFromDirectoriesAsync(targetDirs);
     
     return jobs.map(job => {
@@ -237,14 +248,16 @@ function parseExcelData(data) {
         headers.forEach((h, i) => { headerMap[h] = i; });
         
         const dataRows = dataAsArrays.slice(1);
-        const validStatuses = ['Pending', 'Processing', 'Generating', 'Completed', 'Failed'];
 
         return dataRows.map((rowArray, index) => {
             const get = (headerName) => rowArray[headerMap[headerName]] || '';
             let statusStr = String(get('STATUS')).trim();
             let status = 'Pending';
-            if (statusStr && validStatuses.includes(statusStr)) {
-                status = statusStr;
+            if (statusStr) {
+                const upper = statusStr.toUpperCase();
+                if (upper === 'PENDING RETRY') status = 'PENDING RETRY';
+                else if (upper === 'FAIL' || upper === 'FAILED') status = 'Failed';
+                else status = statusStr;
             }
 
             return {
@@ -299,6 +312,64 @@ async function updateExcelStatus(filePath, jobIdsToUpdate, newStatus = '') {
     } catch (error) {
         console.error('Error updating Excel file:', error);
         return { success: false, error: error.message };
+    }
+}
+
+async function resetJobsToPendingRetry(filePath, jobIdsToReset) {
+    try {
+        if (!fs.existsSync(filePath)) return { success: false, error: 'File not found' };
+        const fileContent = fs.readFileSync(filePath);
+        const workbook = XLSX.read(fileContent, { type: 'buffer' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        let dataAsArrays = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+        
+        if (dataAsArrays.length < 2) return { success: true };
+
+        const headers = dataAsArrays[0].map(h => String(h).trim());
+        const jobIdIndex = headers.indexOf('JOB_ID');
+        const statusIndex = headers.indexOf('STATUS');
+        let retryCountIndex = headers.indexOf('RETRY_COUNT');
+        
+        if (jobIdIndex === -1 || statusIndex === -1) return { success: false, error: 'Missing JOB_ID or STATUS column' };
+
+        let modified = false;
+        for (let i = 1; i < dataAsArrays.length; i++) {
+            const currentId = String(dataAsArrays[i][jobIdIndex]);
+            const status = String(dataAsArrays[i][statusIndex]).trim().toUpperCase();
+            
+            let shouldReset = false;
+            if (jobIdsToReset) {
+                if (jobIdsToReset.includes(currentId)) {
+                    shouldReset = true;
+                }
+            } else {
+                if (status === 'PROCESSING' || status === 'GENERATING' || status === 'PENDING RETRY' || status === 'FAILED' || status === 'FAIL') {
+                    shouldReset = true;
+                }
+            }
+
+            if (shouldReset) {
+                dataAsArrays[i][statusIndex] = 'PENDING RETRY';
+                if (retryCountIndex !== -1) {
+                    dataAsArrays[i][retryCountIndex] = '';
+                } else if (headers.length >= 9) {
+                    dataAsArrays[i][8] = '';
+                }
+                modified = true;
+            }
+        }
+
+        if (modified) {
+            const newWorksheet = XLSX.utils.aoa_to_sheet(dataAsArrays);
+            if (worksheet['!cols']) newWorksheet['!cols'] = worksheet['!cols'];
+            const newWorkbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, sheetName);
+            fs.writeFileSync(filePath, XLSX.write(newWorkbook, { bookType: 'xlsx', type: 'buffer' }));
+        }
+        return { success: true };
+    } catch (e) {
+        return { success: false, error: e.message };
     }
 }
 
@@ -541,18 +612,19 @@ app.whenReady().then(() => {
     for (const [filePath, jobMap] of jobStateTimestamps.entries()) {
         const stuckJobIds = [];
         for (const [jobId, state] of jobMap.entries()) {
-            if ((state.status === 'Processing' || state.status === 'Generating') && (now - state.timestamp > STUCK_JOB_TIMEOUT)) {
+            const status = (state.status || '').trim().toUpperCase();
+            if ((status === 'PROCESSING' || status === 'GENERATING' || status === 'PENDING RETRY' || status === 'FAILED' || status === 'FAIL') && (now - state.timestamp > STUCK_JOB_TIMEOUT)) {
                 stuckJobIds.push(jobId);
             }
         }
         if (stuckJobIds.length > 0) {
-            updateExcelStatus(filePath, stuckJobIds, '')
+            resetJobsToPendingRetry(filePath, stuckJobIds)
                 .then(result => {
                     // Log handled elsewhere
                 });
         }
     }
-  }, 60 * 1000); 
+  }, 5 * 60 * 1000); 
 });
 
 app.on('window-all-closed', () => {
@@ -795,7 +867,8 @@ ipcMain.on('start-watching-file', (event, filePath) => {
                             const jobMap = jobStateTimestamps.get(filePath);
                             const now = Date.now();
                             updatedJobs.forEach(job => {
-                                if (job.status === 'Processing' || job.status === 'Generating') {
+                                const status = (job.status || '').trim().toUpperCase();
+                                if (status === 'PROCESSING' || status === 'GENERATING' || status === 'PENDING RETRY' || status === 'FAILED' || status === 'FAIL') {
                                     if (!jobMap.has(job.id) || jobMap.get(job.id).status !== job.status) {
                                         jobMap.set(job.id, { status: job.status, timestamp: now });
                                     }
@@ -1001,18 +1074,7 @@ ipcMain.handle('retry-job', async (event, { filePath, jobId }) => {
 });
 
 ipcMain.handle('retry-stuck-jobs', async (event, { filePath }) => {
-    try {
-        const buffer = fs.readFileSync(filePath);
-        const jobs = parseExcelData(buffer);
-        const stuckIds = jobs
-            .filter(j => j.status === 'Processing' || j.status === 'Generating')
-            .map(j => j.id);
-        
-        if (stuckIds.length === 0) return { success: true };
-        return await updateExcelStatus(filePath, stuckIds, '');
-    } catch (e) {
-        return { success: false, error: e.message };
-    }
+    return await resetJobsToPendingRetry(filePath, null);
 });
 
 // Helper needed for bulk update which was missing in initial conversion? 

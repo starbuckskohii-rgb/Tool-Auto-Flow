@@ -47,6 +47,7 @@ const Tracker: React.FC = () => {
     const [isStatsExpanded, setIsStatsExpanded] = useState(true); // Global dashboard stats
     const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(true); // File specific header collapse state
     const [filterStatus, setFilterStatus] = useState<string>('All');
+    const [scanMode, setScanMode] = useState<1 | 2>(1);
     
     // State để ép buộc reload ảnh (cache busting)
     const [refreshTrigger, setRefreshTrigger] = useState<number>(Date.now());
@@ -196,6 +197,12 @@ const Tracker: React.FC = () => {
 
         prevCompletedRef.current = currentCompleted;
     }, [files]);
+
+    useEffect(() => {
+        if (ipcRenderer) {
+            ipcRenderer.send('set-scan-mode', scanMode);
+        }
+    }, [scanMode]);
 
     // --- IPC Listeners ---
     useEffect(() => {
@@ -915,6 +922,19 @@ const Tracker: React.FC = () => {
                                                 </select>
                                             </div>
 
+                                            {/* Scan Mode Compact */}
+                                            <div className="flex items-center bg-white border border-gray-200 px-2 py-1 rounded-lg">
+                                                <span className="text-[9px] font-bold text-gray-400 mr-1">QUÉT:</span>
+                                                <select value={scanMode} onChange={(e) => {
+                                                    const mode = Number(e.target.value) as 1 | 2;
+                                                    setScanMode(mode);
+                                                    setTimeout(handleRefresh, 100);
+                                                }} className="text-[10px] font-bold text-gray-600 bg-transparent outline-none cursor-pointer">
+                                                    <option value={1}>CĐ 1</option>
+                                                    <option value={2}>CĐ 2</option>
+                                                </select>
+                                            </div>
+
                                             <button onClick={handleRefresh} className="p-1.5 rounded bg-gray-50 text-gray-500 hover:bg-white hover:text-green-600 border border-transparent hover:border-gray-200 transition" title="Làm mới"><LinkIcon className="w-3.5 h-3.5"/></button>
                                             <button onClick={handleRetryStuck} className="p-1.5 rounded bg-gray-50 text-gray-500 hover:bg-white hover:text-orange-500 border border-transparent hover:border-gray-200 transition" title="Sửa lỗi kẹt"><RetryIcon className="w-3.5 h-3.5"/></button>
                                         </div>
@@ -941,6 +961,17 @@ const Tracker: React.FC = () => {
                                                 <label className="flex items-center gap-1.5 cursor-pointer hover:text-red-600 transition"><input type="radio" name="combine" checked={combineMode==='timed'} onChange={()=>setCombineMode('timed')} className="accent-red-600 w-3 h-3"/> Theo thời gian</label>
                                             </div>
                                             <div className="flex items-center gap-2">
+                                                <div className="flex items-center gap-1.5 bg-white border border-gray-200 px-2 py-1.5 rounded-lg shadow-sm mr-2">
+                                                    <span className="text-[10px] font-bold text-gray-400">QUÉT:</span>
+                                                    <select value={scanMode} onChange={(e) => {
+                                                        const mode = Number(e.target.value) as 1 | 2;
+                                                        setScanMode(mode);
+                                                        setTimeout(handleRefresh, 100);
+                                                    }} className="text-xs font-bold text-gray-600 bg-transparent outline-none cursor-pointer">
+                                                        <option value={1}>Chế độ 1</option>
+                                                        <option value={2}>Chế độ 2 (+Output)</option>
+                                                    </select>
+                                                </div>
                                                 <div className="flex items-center gap-1.5 bg-white border border-gray-200 px-2 py-1.5 rounded-lg shadow-sm mr-2">
                                                     <FilterIcon className="w-3.5 h-3.5 text-gray-500" />
                                                     <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="text-xs font-bold text-gray-600 bg-transparent outline-none cursor-pointer">
