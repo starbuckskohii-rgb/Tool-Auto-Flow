@@ -330,7 +330,7 @@ async function updateExcelStatus(filePath, jobIdsToUpdate, newStatus = '') {
     }
 }
 
-async function resetJobsToPendingRetry(filePath, jobIdsToReset) {
+async function resetStuckJobs(filePath, jobIdsToReset) {
     try {
         if (!fs.existsSync(filePath)) return { success: false, error: 'File not found' };
         const fileContent = fs.readFileSync(filePath);
@@ -365,7 +365,7 @@ async function resetJobsToPendingRetry(filePath, jobIdsToReset) {
             }
 
             if (shouldReset) {
-                dataAsArrays[i][statusIndex] = 'PENDING RETRY';
+                dataAsArrays[i][statusIndex] = '';
                 if (retryCountIndex !== -1) {
                     dataAsArrays[i][retryCountIndex] = '';
                 } else if (headers.length >= 9) {
@@ -509,7 +509,7 @@ app.whenReady().then(() => {
             }
         }
         if (stuckJobIds.length > 0) {
-            resetJobsToPendingRetry(filePath, stuckJobIds)
+            resetStuckJobs(filePath, stuckJobIds)
                 .then(result => {
                     // Log handled elsewhere
                 });
@@ -672,7 +672,17 @@ ipcMain.on('start-watching-file', (event, filePath) => {
         if (fs.existsSync(filePath)) {
             const buffer = fs.readFileSync(filePath);
             const jobs = parseExcelData(buffer);
-            syncStatsAndState(filePath, jobs, true); // init = true
+            const { updatedJobs } = syncStatsAndState(filePath, jobs, true); // init = true
+            
+            // Populate initial timestamps for stuck detection
+            const jobMap = jobStateTimestamps.get(filePath);
+            const now = Date.now();
+            updatedJobs.forEach(job => {
+                const status = (job.status || '').trim().toUpperCase();
+                if (status === 'PROCESSING' || status === 'GENERATING' || status === 'PENDING RETRY' || status === 'FAILED' || status === 'FAIL') {
+                    jobMap.set(job.id, { status: job.status, timestamp: now });
+                }
+            });
         }
     } catch (e) {
         console.error("Error during initial watch scan:", e);
@@ -906,11 +916,11 @@ ipcMain.handle('delete-video-file', async (event, videoPath) => {
 });
 
 ipcMain.handle('retry-job', async (event, { filePath, jobId }) => {
-    return await updateExcelStatus(filePath, [jobId], '');
+    return await resetStuckJobs(filePath, [jobId]);
 });
 
 ipcMain.handle('retry-stuck-jobs', async (event, { filePath }) => {
-    return await resetJobsToPendingRetry(filePath, null);
+    return await resetStuckJobs(filePath, null);
 });
 
 ipcMain.handle('open-tool-flow', async () => {

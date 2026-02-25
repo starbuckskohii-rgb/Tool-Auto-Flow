@@ -344,7 +344,7 @@ const Tracker: React.FC = () => {
     const handleRetryStuck = async () => {
         const activeFile = files[activeFileIndex];
         if (!activeFile || !ipcRenderer) return;
-        if(confirm('Bạn có muốn reset trạng thái các job đang bị kẹt (Processing/Generating) không?')) {
+        if(confirm('Bạn có muốn reset trạng thái các job đang bị kẹt (Processing/Generating/Pending Retry/Failed) không?')) {
             await ipcRenderer.invoke('retry-stuck-jobs', { filePath: activeFile.path });
             await handleRefresh();
         }
