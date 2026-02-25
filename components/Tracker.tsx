@@ -48,9 +48,11 @@ const Tracker: React.FC = () => {
     const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(true); // File specific header collapse state
     const [filterStatus, setFilterStatus] = useState<string>('All');
     const [scanMode, setScanMode] = useState<1 | 2>(1);
+    const [visibleCount, setVisibleCount] = useState<number>(20);
     
     // State để ép buộc reload ảnh (cache busting)
-    const [refreshTrigger, setRefreshTrigger] = useState<number>(Date.now());
+    const [imageUpdates, setImageUpdates] = useState<Record<string, number>>({});
+    const [globalImageUpdate, setGlobalImageUpdate] = useState<number>(Date.now());
 
     // Activity Log State
     const [activityLogs, setActivityLogs] = useState<LogEntry[]>([]);
@@ -109,8 +111,9 @@ const Tracker: React.FC = () => {
 
     const getFileUrl = (path: string) => {
         if (!path) return '';
-        // Thêm refreshTrigger vào query param để tránh cache trình duyệt khi ảnh thay đổi
-        return `file://${path.replace(/\\/g, '/')}?t=${refreshTrigger}`;
+        // Thêm timestamp vào query param để tránh cache trình duyệt khi ảnh thay đổi
+        const t = imageUpdates[path] || globalImageUpdate;
+        return `file://${path.replace(/\\/g, '/')}?t=${t}`;
     };
 
     // --- Startup & Persistence ---
@@ -204,6 +207,10 @@ const Tracker: React.FC = () => {
         }
     }, [scanMode]);
 
+    useEffect(() => {
+        setVisibleCount(20);
+    }, [filterStatus, activeFileIndex]);
+
     // --- IPC Listeners ---
     useEffect(() => {
         if (!ipcRenderer) return;
@@ -219,8 +226,6 @@ const Tracker: React.FC = () => {
                             }
                             return f;
                         }));
-                        // Update timestamp to refresh images if changed via file watcher
-                        setRefreshTrigger(Date.now());
                     }
                 });
         };
@@ -333,12 +338,15 @@ const Tracker: React.FC = () => {
                     copy[activeFileIndex] = { ...activeFile, jobs: result.jobs };
                     return copy;
                 });
-                // Force images to reload by updating the timestamp trigger
-                setRefreshTrigger(Date.now());
             }
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleManualRefresh = async () => {
+        setGlobalImageUpdate(Date.now());
+        await handleRefresh();
     };
 
     const handleRetryStuck = async () => {
@@ -566,6 +574,10 @@ const Tracker: React.FC = () => {
 
             if (saveRes.success) {
                 const colName = uploadContext.slotIndex === 1 ? 'IMAGE_PATH' : (uploadContext.slotIndex === 2 ? 'IMAGE_PATH_2' : 'IMAGE_PATH_3');
+                
+                // Update specific image cache buster
+                setImageUpdates(prev => ({ ...prev, [saveRes.path]: Date.now() }));
+                
                 await ipcRenderer.invoke('update-job-fields', {
                     filePath: activeFile.path,
                     jobId: uploadContext.jobId,
@@ -601,7 +613,7 @@ const Tracker: React.FC = () => {
             >
                 {hasImage ? (
                     <>
-                        <img src={getFileUrl(imagePath)} className="w-full h-full object-cover" />
+                        <img src={getFileUrl(imagePath)} loading="lazy" className="w-full h-full object-cover" />
                         {/* Overlay with Actions */}
                         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-2 transition z-10 p-1">
                              <div className="flex gap-2">
@@ -935,7 +947,7 @@ const Tracker: React.FC = () => {
                                                 </select>
                                             </div>
 
-                                            <button onClick={handleRefresh} className="p-1.5 rounded bg-gray-50 text-gray-500 hover:bg-white hover:text-green-600 border border-transparent hover:border-gray-200 transition" title="Làm mới"><LinkIcon className="w-3.5 h-3.5"/></button>
+                                            <button onClick={handleManualRefresh} className="p-1.5 rounded bg-gray-50 text-gray-500 hover:bg-white hover:text-green-600 border border-transparent hover:border-gray-200 transition" title="Làm mới"><LinkIcon className="w-3.5 h-3.5"/></button>
                                             <button onClick={handleRetryStuck} className="p-1.5 rounded bg-gray-50 text-gray-500 hover:bg-white hover:text-orange-500 border border-transparent hover:border-gray-200 transition" title="Sửa lỗi kẹt"><RetryIcon className="w-3.5 h-3.5"/></button>
                                         </div>
                                     </div>
@@ -985,7 +997,7 @@ const Tracker: React.FC = () => {
                                                 <button onClick={handleCombine} className="px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-red-600 text-xs font-bold shadow-sm hover:shadow hover:text-red-700 transition">Ghép File Này</button>
                                                 <button onClick={handleCombineAll} className="px-3 py-1.5 rounded-lg bg-red-600 text-white border border-transparent text-xs font-bold shadow-sm hover:bg-red-700 transition">Ghép Tất Cả</button>
                                                 <div className="h-4 w-px bg-gray-300 mx-2"></div>
-                                                <button onClick={handleRefresh} className="p-1.5 rounded-lg text-gray-400 hover:bg-white hover:text-green-600 transition" title="Làm mới"><LinkIcon className="w-4 h-4"/></button>
+                                                <button onClick={handleManualRefresh} className="p-1.5 rounded-lg text-gray-400 hover:bg-white hover:text-green-600 transition" title="Làm mới"><LinkIcon className="w-4 h-4"/></button>
                                                 <button onClick={handleRetryStuck} className="p-1.5 rounded-lg text-gray-400 hover:bg-white hover:text-orange-500 transition" title="Sửa lỗi kẹt"><RetryIcon className="w-4 h-4"/></button>
                                             </div>
                                         </div>
@@ -995,7 +1007,17 @@ const Tracker: React.FC = () => {
 
                             {/* Job Table */}
                             <div className="flex-1 bg-white/70 backdrop-blur-sm rounded-2xl overflow-hidden shadow-sm flex flex-col border border-red-100">
-                                <div className="overflow-y-auto flex-1 custom-scrollbar">
+                                <div 
+                                    className="overflow-y-auto flex-1 custom-scrollbar"
+                                    onScroll={(e) => {
+                                        const target = e.currentTarget;
+                                        if (target.scrollHeight - target.scrollTop <= target.clientHeight + 300) {
+                                            if (visibleCount < filteredJobs.length) {
+                                                setVisibleCount(prev => prev + 20);
+                                            }
+                                        }
+                                    }}
+                                >
                                     <table className="w-full text-sm text-left">
                                         <thead className="sticky top-0 z-10 bg-white/95 backdrop-blur-md shadow-sm">
                                             <tr>
@@ -1013,7 +1035,7 @@ const Tracker: React.FC = () => {
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-red-50">
-                                            {filteredJobs.map((job, jIdx) => {
+                                            {filteredJobs.slice(0, visibleCount).map((job, jIdx) => {
                                                 const type = job.typeVideo ? job.typeVideo.toUpperCase() : '';
                                                 
                                                 return (
@@ -1028,6 +1050,7 @@ const Tracker: React.FC = () => {
                                                                     {isImageFile(job.videoPath) ? (
                                                                         <img 
                                                                             src={getFileUrl(job.videoPath)}
+                                                                            loading="lazy"
                                                                             className="w-full h-full object-cover group-hover/video:opacity-100 transition"
                                                                             alt="Result Preview"
                                                                         />
