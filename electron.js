@@ -16,6 +16,7 @@ autoUpdater.autoDownload = false;
 
 const fileWatchers = new Map();
 const jobStateTimestamps = new Map(); // Map<filePath, Map<jobId, { status, timestamp }>>
+const fileCompletionState = new Map(); // Map<filePath, boolean>
 // STATS ALGORITHM: fileJobStates tracks which jobs currently have videos ON DISK.
 // Structure: Map<filePath, Set<jobId>>
 const fileJobStates = new Map();
@@ -478,32 +479,19 @@ async function updateBulkJobFields(filePath, jobUpdates) {
 
 function showWindowAndNotify(title, message, type = 'completion') {
     if (mainWindow) {
-        // Fix: Do not force window open if minimized
-        if (mainWindow.isMinimized()) {
-            if (Notification.isSupported()) {
-                new Notification({
-                    title: title,
-                    body: message,
-                    icon: path.join(__dirname, 'assets/icon.png')
-                }).show();
-            }
-            // We still send the alert to render process so it appears when user eventually opens
-            mainWindow.webContents.send('show-alert-modal', {
+        if (Notification.isSupported()) {
+            new Notification({
                 title: title,
-                message: message,
-                type: type
-            });
-        } else {
-            mainWindow.show();
-            mainWindow.focus();
-            mainWindow.setAlwaysOnTop(true);
-            setTimeout(() => mainWindow.setAlwaysOnTop(false), 500);
-            mainWindow.webContents.send('show-alert-modal', {
-                title: title,
-                message: message,
-                type: type
-            });
+                body: message,
+                icon: path.join(__dirname, 'assets/icon.png')
+            }).show();
         }
+        // We send the alert to render process so it appears when user eventually opens
+        mainWindow.webContents.send('show-alert-modal', {
+            title: title,
+            message: message,
+            type: type
+        });
     }
 }
 
@@ -834,6 +822,9 @@ ipcMain.on('start-watching-file', (event, filePath) => {
     if (!jobStateTimestamps.has(filePath)) {
         jobStateTimestamps.set(filePath, new Map());
     }
+    
+    // Reset completion state when starting to watch
+    fileCompletionState.set(filePath, false);
 
     // INITIALIZATION: Scan once to establish baseline (Async)
     (async () => {
@@ -852,6 +843,12 @@ ipcMain.on('start-watching-file', (event, filePath) => {
                         jobMap.set(job.id, { status: job.status, timestamp: now });
                     }
                 });
+                
+                // Initial completion check
+                if (updatedJobs.length > 0) {
+                    const allDone = updatedJobs.every(j => !!j.videoPath || j.status === 'Completed');
+                    fileCompletionState.set(filePath, allDone);
+                }
             }
         } catch (e) {
             console.error("Error during initial watch scan:", e);
@@ -892,20 +889,23 @@ ipcMain.on('start-watching-file', (event, filePath) => {
                             // Check for completion
                             if (updatedJobs.length > 0) {
                                 const allDone = updatedJobs.every(j => !!j.videoPath || j.status === 'Completed');
-                                if (allDone) {
+                                const wasDone = fileCompletionState.get(filePath);
+                                
+                                if (allDone && !wasDone) {
                                     showWindowAndNotify(
                                         'Hoàn tất xử lý!',
                                         `File "${path.basename(filePath)}" đã hoàn thành 100% video.`,
                                         'completion'
                                     );
                                 }
+                                fileCompletionState.set(filePath, allDone);
                             }
                         }
                     } catch (err) {
                         console.error(`Error reading watched file ${filePath}:`, err);
                     }
                 }, 0); // Execute immediately in async stack
-            }, 500); 
+            }, 2000); // Increased debounce to 2000ms to reduce CPU usage
         }
     });
     fileWatchers.set(filePath, watcher);
@@ -918,6 +918,9 @@ ipcMain.on('stop-watching-file', (event, filePath) => {
     }
     if (jobStateTimestamps.has(filePath)) {
         jobStateTimestamps.delete(filePath);
+    }
+    if (fileCompletionState.has(filePath)) {
+        fileCompletionState.delete(filePath);
     }
 });
 
