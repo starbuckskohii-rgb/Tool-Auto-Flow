@@ -44,6 +44,7 @@ export interface VideoJob {
     videoName: string;
     typeVideo: string;
     videoPath?: string;
+    videoTime?: number;
 }
   
 export interface TrackedFile {

@@ -181,9 +181,15 @@ const Tracker: React.FC = () => {
                 const [path, jobId] = key.split('::');
                 const file = files.find(f => f.path === path);
                 if (file) {
+                    const job = file.jobs.find(j => j.id === jobId);
+                    let logTimeStr = timeStr;
+                    if (job && job.videoTime) {
+                        const videoDate = new Date(job.videoTime);
+                        logTimeStr = videoDate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                    }
                     newEntries.push({
                         uniqueId: Math.random().toString(36).substr(2, 9),
-                        time: timeStr,
+                        time: logTimeStr,
                         jobId: jobId,
                         fileName: file.name
                     });

@@ -127,9 +127,17 @@ async function getFilesFromDirectoriesAsync(dirs) {
         try {
             await fsPromises.access(dir); // Check if directory exists
             const dirents = await fsPromises.readdir(dir, { withFileTypes: true });
-            const mediaFiles = dirents
+            const mediaFiles = await Promise.all(dirents
                 .filter(dirent => dirent.isFile() && mediaExtensions.includes(path.extname(dirent.name).toLowerCase()))
-                .map(dirent => path.join(dir, dirent.name));
+                .map(async dirent => {
+                    const fullPath = path.join(dir, dirent.name);
+                    try {
+                        const stat = await fsPromises.stat(fullPath);
+                        return { path: fullPath, mtimeMs: stat.mtimeMs };
+                    } catch(e) {
+                        return { path: fullPath, mtimeMs: 0 };
+                    }
+                }));
             files.push(...mediaFiles);
         } catch (e) {
             // Directory might not exist yet, ignore
@@ -154,7 +162,14 @@ async function scanVideosInternalAsync(jobs, excelFilePath) {
     
     return jobs.map(job => {
         // If manually linked and exists, keep it
-        if (job.videoPath && fs.existsSync(job.videoPath)) return job;
+        if (job.videoPath && fs.existsSync(job.videoPath)) {
+            try {
+                const stat = fs.statSync(job.videoPath);
+                return { ...job, videoTime: stat.mtimeMs };
+            } catch(e) {
+                return job;
+            }
+        }
         
         // Strict ID Matching
         const jobId = job.id; 
@@ -163,11 +178,11 @@ async function scanVideosInternalAsync(jobs, excelFilePath) {
             if (idNumber) {
                // Strict Regex: Job_1 matches Job_01 but NOT Job_10
                const regex = new RegExp(`Job_0*${idNumber}(?:[^0-9]|$)`, 'i');
-               const matchedFile = mediaFiles.find(f => {
-                    const fileName = path.basename(f);
+               const matchedFileObj = mediaFiles.find(f => {
+                    const fileName = path.basename(f.path);
                     return regex.test(fileName);
                });
-               if (matchedFile) return { ...job, videoPath: matchedFile, status: 'Completed' };
+               if (matchedFileObj) return { ...job, videoPath: matchedFileObj.path, status: 'Completed', videoTime: matchedFileObj.mtimeMs };
             }
         }
         
@@ -177,11 +192,11 @@ async function scanVideosInternalAsync(jobs, excelFilePath) {
              const escapedName = cleanName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
              const nameRegex = new RegExp(`${escapedName}(?:[^0-9]|$)`, 'i');
              
-             const matchedFileByName = mediaFiles.find(f => {
-                 const fileName = path.basename(f, path.extname(f));
+             const matchedFileByNameObj = mediaFiles.find(f => {
+                 const fileName = path.basename(f.path, path.extname(f.path));
                  return nameRegex.test(fileName);
              });
-             if (matchedFileByName) return { ...job, videoPath: matchedFileByName, status: 'Completed' };
+             if (matchedFileByNameObj) return { ...job, videoPath: matchedFileByNameObj.path, status: 'Completed', videoTime: matchedFileByNameObj.mtimeMs };
         }
         return job;
     });
