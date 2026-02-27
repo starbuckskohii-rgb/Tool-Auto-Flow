@@ -17,7 +17,8 @@ import {
   XCircleIcon,
   TableDeleteIcon,
   FilterIcon,
-  CopyIcon
+  CopyIcon,
+  RefreshCwIcon
 } from './Icons';
 
 const isElectron = navigator.userAgent.toLowerCase().includes('electron');
@@ -704,9 +705,19 @@ const Tracker: React.FC = () => {
                             <h3 className="text-lg font-bold text-gray-700 flex items-center gap-2">
                                 <span className="text-green-500">⚡</span> Lịch sử hoạt động
                             </h3>
-                            <button onClick={() => setIsLogModalOpen(false)} className="text-gray-400 hover:text-red-500 transition">
-                                <XCircleIcon className="w-6 h-6" />
-                            </button>
+                            <div className="flex items-center gap-3">
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); handleScanFolder(); }} 
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-600 hover:bg-green-600 hover:text-white rounded-lg text-xs font-bold transition shadow-sm"
+                                    disabled={loading}
+                                >
+                                    {loading ? <LoaderIcon /> : <RefreshCwIcon className="w-3.5 h-3.5" />}
+                                    Làm mới
+                                </button>
+                                <button onClick={() => setIsLogModalOpen(false)} className="text-gray-400 hover:text-red-500 transition">
+                                    <XCircleIcon className="w-6 h-6" />
+                                </button>
+                            </div>
                         </div>
                         <div className="overflow-y-auto flex-1 p-0 custom-scrollbar">
                             {activityLogs.length === 0 ? (
@@ -792,6 +803,14 @@ const Tracker: React.FC = () => {
                                         title="Mở rộng lịch sử"
                                     >
                                         <MaximizeIcon className="w-3 h-3" />
+                                    </button>
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); handleScanFolder(); }} 
+                                        className="text-gray-300 hover:text-green-500 transition p-0.5 rounded hover:bg-green-50"
+                                        title="Làm mới lịch sử"
+                                        disabled={loading}
+                                    >
+                                        <RefreshCwIcon className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
                                     </button>
                                  </div>
                                  <span className="text-[9px] text-gray-300 font-bold">{activityLogs.length}/100</span>
